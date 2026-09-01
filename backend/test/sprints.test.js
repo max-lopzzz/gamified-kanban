@@ -100,6 +100,34 @@ test("DELETE /api/sprints/:id removes it and nulls task.sprint_id", async () => 
   assert.equal(t2.sprint_id, null);
 });
 
+test("DELETE /api/sprints/:id keeps its tasks with sprint_id nulled (explicit cleanup)", async () => {
+  const { token, board, s1 } = await setupBoardWithSprint(app);
+  const task = (
+    await request(app)
+      .post("/api/tasks")
+      .set(authHeader(token))
+      .send({ boardId: board.id, title: "carry-over", sprintId: s1.id })
+  ).body;
+
+  const del = await request(app)
+    .delete(`/api/sprints/${s1.id}`)
+    .set(authHeader(token));
+  assert.equal(del.status, 200);
+  assert.deepEqual(del.body, { ok: true });
+
+  const sprints = (
+    await request(app).get(`/api/sprints/board/${board.id}`).set(authHeader(token))
+  ).body;
+  assert.equal(sprints.find((s) => s.id === s1.id), undefined);
+
+  const board2 = (
+    await request(app).get(`/api/boards/${board.id}`).set(authHeader(token))
+  ).body;
+  const t2 = board2.tasks.find((x) => x.id === task.id);
+  assert.ok(t2, "task should still exist after its sprint is deleted");
+  assert.equal(t2.sprint_id, null);
+});
+
 test("DELETE /api/sprints/:id 403 for a non-member", async () => {
   const { s1 } = await setupBoardWithSprint(app);
   const outsider = await registerUser(app, { email: uniqueEmail("out") });

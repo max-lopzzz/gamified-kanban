@@ -144,7 +144,24 @@ router.delete("/:id", (req, res) => {
     return res.status(403).json({ error: "You are not a member of this board" });
   }
 
-  db.prepare("DELETE FROM sprints WHERE id = ?").run(req.params.id);
+  /*
+   * Clean up dependent rows explicitly inside one transaction.
+   *
+   * We cannot rely on `tasks.sprint_id ON DELETE SET NULL`: that clause
+   * only exists on freshly-created tables. A pre-existing
+   * gamified_kanban.sqlite has the legacy FK definition without it, and
+   * with `foreign_keys = ON` active a bare `DELETE FROM sprints` throws
+   * FOREIGN KEY constraint failed whenever the sprint still has tasks.
+   */
+  const deleteSprint = db.transaction((sprintId) => {
+    db.prepare("UPDATE tasks SET sprint_id = NULL WHERE sprint_id = ?").run(
+      sprintId
+    );
+    db.prepare("DELETE FROM sprints WHERE id = ?").run(sprintId);
+  });
+
+  deleteSprint(req.params.id);
+
   res.json({ ok: true });
 });
 

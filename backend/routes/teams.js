@@ -109,7 +109,26 @@ router.delete("/:teamId", (req, res) => {
   if (!isBoardOwner(boardId, req.userId)) {
     return res.status(403).json({ error: "Only the board owner can delete teams" });
   }
-  db.prepare("DELETE FROM teams WHERE id = ?").run(req.params.teamId);
+  /*
+   * Clean up dependent rows explicitly inside one transaction.
+   *
+   * We cannot rely on ON DELETE CASCADE / SET NULL: those clauses only
+   * exist on freshly-created tables. A pre-existing gamified_kanban.sqlite
+   * has the legacy FK definitions without them, and with
+   * `foreign_keys = ON` active a bare `DELETE FROM teams` throws FOREIGN
+   * KEY constraint failed whenever the team still has members (or tasks
+   * assigned to it).
+   */
+  const deleteTeam = db.transaction((teamId) => {
+    db.prepare(
+      "UPDATE tasks SET team_id = NULL, assignee_type = 'unassigned' WHERE team_id = ?"
+    ).run(teamId);
+    db.prepare("DELETE FROM team_members WHERE team_id = ?").run(teamId);
+    db.prepare("DELETE FROM teams WHERE id = ?").run(teamId);
+  });
+
+  deleteTeam(req.params.teamId);
+
   res.json({ ok: true });
 });
 

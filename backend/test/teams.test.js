@@ -84,6 +84,58 @@ test("team member add/remove works for the owner and cascades on delete", async 
   assert.equal(list.length, 0);
 });
 
+test("DELETE /api/teams/:teamId clears members and unassigns its tasks (explicit cleanup)", async () => {
+  const { token, user, board } = await ownerWithBoard("e");
+  const team = (
+    await request(app)
+      .post("/api/teams")
+      .set(authHeader(token))
+      .send({ boardId: board.id, name: "Platform" })
+  ).body;
+
+  const add = await request(app)
+    .post(`/api/teams/${team.id}/members`)
+    .set(authHeader(token))
+    .send({ userId: user.id });
+  assert.equal(add.status, 200);
+
+  const task = (
+    await request(app)
+      .post("/api/tasks")
+      .set(authHeader(token))
+      .send({
+        boardId: board.id,
+        title: "team task",
+        assigneeType: "team",
+        teamId: team.id,
+      })
+  ).body;
+
+  const del = await request(app)
+    .delete(`/api/teams/${team.id}`)
+    .set(authHeader(token));
+  assert.equal(del.status, 200);
+  assert.deepEqual(del.body, { ok: true });
+
+  const teams = (
+    await request(app).get(`/api/teams/board/${board.id}`).set(authHeader(token))
+  ).body;
+  assert.equal(teams.find((t) => t.id === team.id), undefined);
+
+  const members = await request(app)
+    .get(`/api/teams/${team.id}/members`)
+    .set(authHeader(token));
+  assert.equal(members.status, 404); // team is gone
+
+  const board2 = (
+    await request(app).get(`/api/boards/${board.id}`).set(authHeader(token))
+  ).body;
+  const t2 = board2.tasks.find((x) => x.id === task.id);
+  assert.ok(t2, "task should still exist after its team is deleted");
+  assert.equal(t2.team_id, null);
+  assert.equal(t2.assignee_type, "unassigned");
+});
+
 test("GET /api/teams/board/:boardId 403 for a non-member", async () => {
   const { board } = await ownerWithBoard("d");
   const outsider = await registerUser(app, { email: uniqueEmail("nope-d") });
