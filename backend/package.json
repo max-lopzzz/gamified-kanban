@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node server.js",
-    "test": "node --test"
+    "test": "node --test --test-concurrency=1"
   },
   "devDependencies": {
     "supertest": "^7.0.0"
