@@ -55,16 +55,27 @@ npm run dev
 Open `http://localhost:5173`, register an account, create a board, add tasks,
 and drag them to **Done** to see XP, levels, streaks, and achievements fire.
 
+**Backend tests:**
+```bash
+cd backend && npm test
+```
+
 ## How the gamification works (`backend/gamification.js`)
 - **XP per task** = `story_points × 10 × priority_multiplier` (urgent = 1.5x, high = 1.25x, normal = 1x, low = 0.75x)
 - **Levels** follow a curve (`50 × level^1.6`) — gentle early on, steeper later, so leveling doesn't trivialize as you progress
 - **Streaks** increment once per calendar day you complete at least one task; a missed day resets the streak to 1
 - **Achievements** are checked after every completion (first task, 10 tasks, 5-day streak, an 8+ point task, reaching level 5) — the seed list lives in `db.js` and is easy to extend
 
+## Features
+Beyond the core XP/level/streak loop, the app now includes:
+- **Board invitations**: board owners generate a copy-link invite; the recipient opens `/invite/:token`, registers or logs in, and lands on the board as a member
+- **Teams**: board-owner-managed teams (name + description) with add/remove members and delete
+- **Sprint-aware board**: create sprints with a goal and start/end dates, start one to make it active, and the board auto-selects the active sprint on load; a sprint switcher filters the board and a progress strip shows done / committed story points
+- **Board settings view**: a dedicated two-pane `/board/:id/settings` screen with Members / Teams / Sprints / Danger zone sections (delete-board with name confirmation)
+- **Theme toggle**: light / dark / system theme with the choice persisted across reloads
+- **Full task editing**: edit and delete tasks from the board, including sprint reassignment
+
 ## Where to go from here
-This is a working MVP, not a finished product. Natural next steps:
-- **Multi-user boards**: `board_members` table already exists but isn't wired into the UI yet — add an invite flow
-- **Sprints**: the `sprints` table exists in the schema but isn't exposed via the API/UI yet — good next feature if you want the "scrum" half fully fleshed out
-- **Task details**: no edit/delete UI yet, though the API supports both (`PATCH`/`DELETE /api/tasks/:id`)
+This is a working MVP, not a finished product. Remaining ideas:
 - **Real hosting**: swap SQLite for hosted Postgres if you outgrow a single file, deploy backend (Render/Fly/Railway) and frontend (Vercel/Netlify) separately
 - **Team gamification**: right now XP is per-user; a team/board-level XP pool or "raid boss" mechanic (a shared health bar the whole team chips away at) could be a good differentiator if you want this to feel distinct from Habitica/other gamified to-do apps already on the market
