@@ -1,1 +1,5 @@
 backend/gamified_kanban.sqlite
+
+node_modules/
+dist/
+.DS_Store

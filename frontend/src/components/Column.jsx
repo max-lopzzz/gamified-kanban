@@ -51,7 +51,7 @@ export default function Column({ status, title, tasks, onCreateTask }) {
                 <input
                   type="number"
                   min={1}
-                  max={13}
+                  max={1000}
                   value={points}
                   onChange={(e) => setPoints(e.target.value)}
                   title="Story points"
