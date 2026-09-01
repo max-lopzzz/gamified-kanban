@@ -24,4 +24,15 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
 
+/*
+ * JSON error handler. Without this Express falls back to its HTML error page,
+ * which the frontend's `res.json()` then chokes on, masking the real failure.
+ * Must stay the LAST app.use(...).
+ */
+app.use((err, req, res, _next) => {
+  res.status(err.status || 500).json({
+    error: err.message || "Internal server error",
+  });
+});
+
 export default app;

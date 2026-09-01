@@ -15,6 +15,22 @@ function isBoardMember(boardId, userId) {
     .get(boardId, userId);
 }
 
+/*
+ * A board has at most one active sprint. Clearing siblings has to happen on
+ * both POST and PATCH, so it lives in one place.
+ */
+function deactivateOtherSprints(boardId, exceptId = null) {
+  if (exceptId) {
+    db.prepare(
+      "UPDATE sprints SET is_active = 0 WHERE board_id = ? AND id != ?"
+    ).run(boardId, exceptId);
+  } else {
+    db.prepare("UPDATE sprints SET is_active = 0 WHERE board_id = ?").run(
+      boardId
+    );
+  }
+}
+
 router.get("/board/:boardId", (req, res) => {
   if (!isBoardMember(req.params.boardId, req.userId)) {
     return res.status(403).json({
@@ -38,6 +54,7 @@ router.post("/", (req, res) => {
   const {
     boardId,
     name,
+    goal = "",
     startsAt = null,
     endsAt = null,
     isActive = false,
@@ -62,19 +79,25 @@ router.post("/", (req, res) => {
       id,
       board_id,
       name,
+      goal,
       starts_at,
       ends_at,
       is_active
     )
-    VALUES (?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     boardId,
     name.trim(),
+    goal ?? "",
     startsAt,
     endsAt,
     isActive ? 1 : 0
   );
+
+  if (isActive) {
+    deactivateOtherSprints(boardId, id);
+  }
 
   res.json(
     db.prepare("SELECT * FROM sprints WHERE id = ?").get(id)
@@ -113,9 +136,7 @@ router.patch("/:id", (req, res) => {
 
   if (req.body.isActive !== undefined) {
     if (req.body.isActive) {
-      db.prepare(
-        "UPDATE sprints SET is_active = 0 WHERE board_id = ?"
-      ).run(sprint.board_id);
+      deactivateOtherSprints(sprint.board_id);
     }
     updates.push("is_active = ?");
     values.push(req.body.isActive ? 1 : 0);

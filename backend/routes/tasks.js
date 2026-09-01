@@ -6,6 +6,36 @@ import { awardTaskCompletion } from "../gamification.js";
 const router = Router();
 
 /*
+ * Board authorization: the board owner, or anyone with a board_members row.
+ *
+ * Mirrors the helper in routes/boards.js — a board's owner always counts as a
+ * member even if the board_members row is missing.
+ */
+function isBoardMember(boardId, userId) {
+  const board = db
+    .prepare("SELECT owner_id FROM boards WHERE id = ?")
+    .get(boardId);
+
+  if (!board) {
+    return false;
+  }
+
+  if (board.owner_id === userId) {
+    return true;
+  }
+
+  return Boolean(
+    db
+      .prepare(`
+        SELECT 1
+        FROM board_members
+        WHERE board_id = ? AND user_id = ?
+      `)
+      .get(boardId, userId)
+  );
+}
+
+/*
  * Create task
  */
 router.post("/", (req, res) => {
@@ -34,6 +64,65 @@ router.post("/", (req, res) => {
     });
   }
 
+  if (!isBoardMember(boardId, req.userId)) {
+    return res.status(403).json({
+      error: "You are not a member of this board",
+    });
+  }
+
+  /*
+   * Validate every foreign reference BEFORE writing anything.
+   *
+   * `INSERT OR IGNORE` does not suppress FK violations, so an unknown
+   * dependency id used to throw *after* the task row had already been
+   * inserted, leaving a partial write behind and returning a bare 500.
+   */
+  const dependencyList = Array.isArray(dependencyIds) ? dependencyIds : [];
+
+  for (const dependencyId of dependencyList) {
+    const dependency = db
+      .prepare("SELECT board_id FROM tasks WHERE id = ?")
+      .get(dependencyId);
+
+    if (!dependency || dependency.board_id !== boardId) {
+      return res.status(400).json({
+        error: "Unknown dependency task for this board",
+      });
+    }
+  }
+
+  if (sprintId) {
+    const sprint = db
+      .prepare("SELECT board_id FROM sprints WHERE id = ?")
+      .get(sprintId);
+
+    if (!sprint || sprint.board_id !== boardId) {
+      return res.status(400).json({
+        error: "Unknown sprint for this board",
+      });
+    }
+  }
+
+  if (assigneeType === "team" && teamId) {
+    const team = db
+      .prepare("SELECT board_id FROM teams WHERE id = ?")
+      .get(teamId);
+
+    if (!team || team.board_id !== boardId) {
+      return res.status(400).json({
+        error: "Unknown team for this board",
+      });
+    }
+  }
+
+  if (assigneeType === "user" && assigneeId) {
+    if (!isBoardMember(boardId, assigneeId)) {
+      return res.status(400).json({
+        error: "Assignee is not a member of this board",
+      });
+    }
+  }
+
   const id = `task_${nanoid(10)}`;
 
   const maxPos = db
@@ -44,7 +133,7 @@ router.post("/", (req, res) => {
     `)
     .get(boardId).m;
 
-  db.prepare(`
+  const insertTask = db.prepare(`
     INSERT INTO tasks (
       id,
       board_id,
@@ -59,19 +148,7 @@ router.post("/", (req, res) => {
       position
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id,
-    boardId,
-    sprintId || null,
-    title.trim(),
-    description,
-    priority,
-    Number(storyPoints) || 1,
-    assigneeType,
-    assigneeType === "user" ? assigneeId : null,
-    assigneeType === "team" ? teamId : null,
-    maxPos + 1
-  );
+  `);
 
   const insertDependency = db.prepare(`
     INSERT OR IGNORE INTO task_dependencies
@@ -79,11 +156,29 @@ router.post("/", (req, res) => {
     VALUES (?, ?)
   `);
 
-  for (const dependencyId of dependencyIds) {
-    if (dependencyId !== id) {
-      insertDependency.run(id, dependencyId);
+  const createTask = db.transaction(() => {
+    insertTask.run(
+      id,
+      boardId,
+      sprintId || null,
+      title.trim(),
+      description,
+      priority,
+      Number(storyPoints) || 1,
+      assigneeType,
+      assigneeType === "user" ? assigneeId : null,
+      assigneeType === "team" ? teamId : null,
+      maxPos + 1
+    );
+
+    for (const dependencyId of dependencyList) {
+      if (dependencyId !== id) {
+        insertDependency.run(id, dependencyId);
+      }
     }
-  }
+  });
+
+  createTask();
 
   res.json(
     db.prepare("SELECT * FROM tasks WHERE id = ?").get(id)
@@ -103,6 +198,12 @@ router.patch("/:taskId/move", (req, res) => {
   if (!task) {
     return res.status(404).json({
       error: "Task not found",
+    });
+  }
+
+  if (!isBoardMember(task.board_id, req.userId)) {
+    return res.status(403).json({
+      error: "You are not a member of this board",
     });
   }
 
@@ -152,6 +253,22 @@ router.patch("/:taskId/move", (req, res) => {
  * Update task
  */
 router.patch("/:taskId", (req, res) => {
+  const task = db
+    .prepare("SELECT * FROM tasks WHERE id = ?")
+    .get(req.params.taskId);
+
+  if (!task) {
+    return res.status(404).json({
+      error: "Task not found",
+    });
+  }
+
+  if (!isBoardMember(task.board_id, req.userId)) {
+    return res.status(403).json({
+      error: "You are not a member of this board",
+    });
+  }
+
   const allowed = {
     title: "title",
     description: "description",
@@ -230,6 +347,12 @@ router.delete("/:taskId", (req, res) => {
   if (!task) {
     return res.status(404).json({
       error: "Task not found",
+    });
+  }
+
+  if (!isBoardMember(task.board_id, req.userId)) {
+    return res.status(403).json({
+      error: "You are not a member of this board",
     });
   }
 

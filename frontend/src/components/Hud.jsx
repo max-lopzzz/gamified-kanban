@@ -1,5 +1,22 @@
 export default function Hud({ user, justLeveledUp, onSignOut }) {
-  if (!user) return null;
+  /*
+   * The user can be missing while loading, or because the session expired
+   * before /users/me resolved. Returning null used to hide the only Sign out
+   * button in the app, leaving an expired session permanently stuck.
+   */
+  if (!user) {
+    return (
+      <div className="hud">
+        <span className="hud-brand">Questboard</span>
+        <div className="hud-user">
+          <button className="hud-signout" onClick={onSignOut}>
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const { xp, level, xpForCurrentLevel, xpForNextLevel, currentStreak } = user;
   const span = Math.max(1, xpForNextLevel - xpForCurrentLevel);
   const progress = Math.min(1, Math.max(0, (xp - xpForCurrentLevel) / span));
