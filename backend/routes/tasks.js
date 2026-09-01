@@ -19,7 +19,7 @@ router.post("/", (req, res) => {
     assigneeId = null,
     teamId = null,
     sprintId = null,
-    dependencies = [],
+    dependencyIds = [],
   } = req.body;
 
   if (!boardId || !title?.trim()) {
@@ -79,7 +79,7 @@ router.post("/", (req, res) => {
     VALUES (?, ?)
   `);
 
-  for (const dependencyId of dependencies) {
+  for (const dependencyId of dependencyIds) {
     if (dependencyId !== id) {
       insertDependency.run(id, dependencyId);
     }
@@ -173,24 +173,28 @@ router.patch("/:taskId", (req, res) => {
     }
   }
 
-  if (updates.length === 0) {
+  const hasDependencyIds = Array.isArray(req.body.dependencyIds);
+
+  if (updates.length === 0 && !hasDependencyIds) {
     return res.status(400).json({
       error: "No valid fields to update",
     });
   }
 
-  values.push(req.params.taskId);
+  if (updates.length > 0) {
+    values.push(req.params.taskId);
 
-  db.prepare(`
-    UPDATE tasks
-    SET ${updates.join(", ")}
-    WHERE id = ?
-  `).run(...values);
+    db.prepare(`
+      UPDATE tasks
+      SET ${updates.join(", ")}
+      WHERE id = ?
+    `).run(...values);
+  }
 
   /*
    * Replace dependencies if they were supplied.
    */
-  if (Array.isArray(req.body.dependencies)) {
+  if (hasDependencyIds) {
     db.prepare(`
       DELETE FROM task_dependencies
       WHERE task_id = ?
@@ -202,7 +206,7 @@ router.patch("/:taskId", (req, res) => {
       VALUES (?, ?)
     `);
 
-    for (const dependencyId of req.body.dependencies) {
+    for (const dependencyId of req.body.dependencyIds) {
       if (dependencyId !== req.params.taskId) {
         insert.run(req.params.taskId, dependencyId);
       }

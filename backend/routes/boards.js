@@ -76,15 +76,29 @@ router.get("/:boardId", (req, res) => {
     `)
     .all(req.params.boardId);
 
-  const dependencies = db
+  const dependencyRows = db
     .prepare(`
-      SELECT task_id, depends_on_task_id
-      FROM task_dependencies
-      WHERE task_id IN (
+      SELECT d.task_id, d.depends_on_task_id, t.title
+      FROM task_dependencies d
+      JOIN tasks t ON t.id = d.depends_on_task_id
+      WHERE d.task_id IN (
         SELECT id FROM tasks WHERE board_id = ?
       )
     `)
     .all(req.params.boardId);
+
+  const dependenciesByTask = {};
+  for (const row of dependencyRows) {
+    (dependenciesByTask[row.task_id] ||= []).push({
+      id: row.depends_on_task_id,
+      title: row.title,
+    });
+  }
+
+  const tasksWithDeps = tasks.map((task) => ({
+    ...task,
+    dependencies: dependenciesByTask[task.id] || [],
+  }));
 
   const members = db
     .prepare(`
@@ -120,8 +134,7 @@ router.get("/:boardId", (req, res) => {
 
   res.json({
     ...board,
-    tasks,
-    dependencies,
+    tasks: tasksWithDeps,
     members,
     teams,
     sprints,
