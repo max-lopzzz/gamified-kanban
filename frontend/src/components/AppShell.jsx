@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Outlet, useNavigate, useLocation, Link } from "react-router-dom";
 import { api, clearToken } from "../api";
+import { applyTheme, resolveInitial, nextTheme, themeLabel } from "../theme.js";
 import Hud from "./Hud.jsx";
 import Leaderboard from "./Leaderboard.jsx";
 import { LevelUpToast, AchievementToast } from "./Toasts.jsx";
@@ -16,6 +17,7 @@ export default function AppShell({ onSignOut }) {
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [achievementQueue, setAchievementQueue] = useState([]);
   const [leaderboardKey, setLeaderboardKey] = useState(0);
+  const [themeMode, setThemeMode] = useState(resolveInitial());
 
   const loadUser = useCallback(async () => {
     setUser(await api.me());
@@ -113,10 +115,14 @@ export default function AppShell({ onSignOut }) {
             id="theme-toggle"
             className="btn-ghost"
             type="button"
-            onClick={() => {}}
-            title="Toggle theme"
+            onClick={() => {
+              const next = nextTheme(themeMode);
+              setThemeMode(next);
+              applyTheme(next);
+            }}
+            title="Toggle light / dark / system"
           >
-            Theme
+            {themeLabel(themeMode)}
           </button>
         </div>
       </div>
