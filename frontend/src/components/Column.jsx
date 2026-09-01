@@ -9,6 +9,7 @@ export default function Column({
   allTasks,
   onCreateTask,
   board,
+  sprintFilter,
   onUpdateTask,
   onDeleteTask,
 }) {
@@ -32,10 +33,13 @@ export default function Column({
   const [teamId, setTeamId] =
     useState("");
 
-  const [sprintId, setSprintId] =
-    useState("");
+  const [sprintId, setSprintId] = useState(
+    sprintFilter && sprintFilter !== "all" && sprintFilter !== "backlog"
+      ? sprintFilter
+      : ""
+  );
 
-  const [dependencies, setDependencies] =
+  const [dependencyIds, setDependencyIds] =
     useState([]);
 
   function submit(e) {
@@ -62,7 +66,7 @@ export default function Column({
       assigneeId: assigneeType === "user" ? assigneeId : null,
       teamId: assigneeType === "team" ? teamId : null,
       sprintId: sprintId || null,
-      dependencies,
+      dependencyIds,
     });
 
     setTitle("");
@@ -73,12 +77,12 @@ export default function Column({
     setAssigneeId("");
     setTeamId("");
     setSprintId("");
-    setDependencies([]);
+    setDependencyIds([]);
     setShowForm(false);
   }
 
   function toggleDependency(id) {
-    setDependencies((current) =>
+    setDependencyIds((current) =>
       current.includes(id)
         ? current.filter((x) => x !== id)
         : [...current, id]
@@ -263,7 +267,7 @@ export default function Column({
                     >
                       <input
                         type="checkbox"
-                        checked={dependencies.includes(task.id)}
+                        checked={dependencyIds.includes(task.id)}
                         onChange={() =>
                           toggleDependency(task.id)
                         }

@@ -13,6 +13,7 @@ const PRIORITY_MULT = {
 export default function TaskCard({
   task,
   allTasks,
+  board,
   onUpdate,
   onDelete,
 }) {
@@ -41,6 +42,9 @@ export default function TaskCard({
   const [dependencyIds, setDependencyIds] = useState(
     (task.dependencies || []).map((d) => d.id)
   );
+  const [sprintId, setSprintId] = useState(
+    task.sprint_id || ""
+  );
 
   const style = transform
     ? {
@@ -65,6 +69,7 @@ export default function TaskCard({
       priority,
       storyPoints: Number(points),
       dependencyIds,
+      sprintId: sprintId || null,
     });
 
     setEditing(false);
@@ -123,6 +128,23 @@ export default function TaskCard({
               }
             />
           </div>
+
+          <label>Sprint</label>
+
+          <select
+            value={sprintId}
+            onChange={(e) =>
+              setSprintId(e.target.value)
+            }
+          >
+            <option value="">No sprint</option>
+
+            {(board?.sprints || []).map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
 
           {allTasks.filter((t) => t.id !== task.id).length >
             0 && (

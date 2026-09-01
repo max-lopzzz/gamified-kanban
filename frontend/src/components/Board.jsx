@@ -165,6 +165,7 @@ export default function Board({
               )}
               allTasks={visibleTasks}
               board={board}
+              sprintFilter={sprintFilter}
               onCreateTask={handleCreateTask}
               onUpdateTask={handleUpdateTask}
               onDeleteTask={handleDeleteTask}
