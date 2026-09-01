@@ -1,16 +1,142 @@
 :root {
+  /* light — "parchment & ink" quest theme */
+  --bg: #f4efe4;
+  --surface: #fbf7ee;
+  --surface-raised: #ffffff;
+  --surface-overlay: #ffffff;
+  --border: #e0d6c2;
+  --border-strong: #cabfa4;
+  --text: #2a2620;
+  --text-muted: #6b6455;
+  --text-faint: #9a9283;
+
+  --gold: #c8912f;
+  --gold-ink: #1c1710;
+  --teal: #2c8c86;
+  --danger: #b23b3b;
+  --danger-ink: #ffffff;
+
+  --priority-low: #7c9aa6;
+  --priority-normal: #5b8def;
+  --priority-high: #d98a3d;
+  --priority-urgent: #d1524f;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --shadow-sm: 0 1px 2px rgba(30, 24, 14, 0.08);
+  --shadow-md: 0 6px 18px rgba(30, 24, 14, 0.12);
+  --shadow-lg: 0 18px 48px rgba(30, 24, 14, 0.18);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --xp-track: #e6dcc6;
+  --xp-fill: linear-gradient(90deg, #c8912f, #e6b453);
+  --streak-flame: #d97528;
+  --level-ring: #2c8c86;
+
+  --font-display: "Sora", sans-serif;
+  --font-body: "Inter", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14151f;
+    --surface: #1e2030;
+    --surface-raised: #262940;
+    --surface-overlay: #2b2e46;
+    --border: #2c2f45;
+    --border-strong: #3b3f5c;
+    --text: #ededf4;
+    --text-muted: #9095ad;
+    --text-faint: #6b7090;
+
+    --gold: #e8b94a;
+    --gold-ink: #14151f;
+    --teal: #4ecdc4;
+    --danger: #e85d5d;
+    --danger-ink: #14151f;
+
+    --priority-low: #6b8f9c;
+    --priority-normal: #5b8def;
+    --priority-high: #e89a4a;
+    --priority-urgent: #e85d5d;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 20px 56px rgba(0, 0, 0, 0.55);
+
+    --xp-track: #2c2f45;
+    --xp-fill: linear-gradient(90deg, #e8b94a, #f2d488);
+    --streak-flame: #f0894a;
+    --level-ring: #4ecdc4;
+  }
+}
+
+:root[data-theme="dark"] {
   --bg: #14151f;
   --surface: #1e2030;
   --surface-raised: #262940;
+  --surface-overlay: #2b2e46;
   --border: #2c2f45;
+  --border-strong: #3b3f5c;
   --text: #ededf4;
-  --text-muted: #8b8fa8;
+  --text-muted: #9095ad;
+  --text-faint: #6b7090;
   --gold: #e8b94a;
+  --gold-ink: #14151f;
   --teal: #4ecdc4;
-  --urgent: #e85d5d;
-  --high: #e89a4a;
-  --font-display: "Sora", sans-serif;
-  --font-body: "Inter", sans-serif;
+  --danger: #e85d5d;
+  --danger-ink: #14151f;
+  --priority-low: #6b8f9c;
+  --priority-normal: #5b8def;
+  --priority-high: #e89a4a;
+  --priority-urgent: #e85d5d;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 56px rgba(0, 0, 0, 0.55);
+  --xp-track: #2c2f45;
+  --xp-fill: linear-gradient(90deg, #e8b94a, #f2d488);
+  --streak-flame: #f0894a;
+  --level-ring: #4ecdc4;
+}
+
+:root[data-theme="light"] {
+  /* bare :root is already light; this block exists so an explicit
+     light choice wins over a dark OS preference — repeat the values */
+  --bg: #f4efe4;
+  --surface: #fbf7ee;
+  --surface-raised: #ffffff;
+  --surface-overlay: #ffffff;
+  --border: #e0d6c2;
+  --border-strong: #cabfa4;
+  --text: #2a2620;
+  --text-muted: #6b6455;
+  --text-faint: #9a9283;
+  --gold: #c8912f;
+  --gold-ink: #1c1710;
+  --teal: #2c8c86;
+  --danger: #b23b3b;
+  --danger-ink: #ffffff;
+  --priority-low: #7c9aa6;
+  --priority-normal: #5b8def;
+  --priority-high: #d98a3d;
+  --priority-urgent: #d1524f;
+  --shadow-sm: 0 1px 2px rgba(30, 24, 14, 0.08);
+  --shadow-md: 0 6px 18px rgba(30, 24, 14, 0.12);
+  --shadow-lg: 0 18px 48px rgba(30, 24, 14, 0.18);
+  --xp-track: #e6dcc6;
+  --xp-fill: linear-gradient(90deg, #c8912f, #e6b453);
+  --streak-flame: #d97528;
+  --level-ring: #2c8c86;
 }
 
 * { box-sizing: border-box; }
