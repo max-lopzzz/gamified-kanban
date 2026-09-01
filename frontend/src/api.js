@@ -14,9 +14,11 @@ async function request(path, options = {}) {
       ...options.headers,
     },
   });
-  if (res.status === 401) {
+  if (res.status === 401 && !path.startsWith("/auth/")) {
     // Expired/invalid token: drop it and bounce to the login screen, rather
     // than leaving the app stuck with a null user and no way to sign out.
+    // Auth endpoints (login/register) are exempt: a bad-credentials 401 there
+    // must fall through so the form can show its own error instead of reloading.
     try {
       localStorage.removeItem("qb_token");
     } catch {}
