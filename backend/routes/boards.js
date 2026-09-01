@@ -179,6 +179,22 @@ router.post("/:boardId/invitations", (req, res) => {
     }
   }
 
+  const pending = db
+    .prepare(`
+      SELECT 1
+      FROM board_invitations
+      WHERE board_id = ?
+        AND lower(email) = lower(?)
+        AND status = 'pending'
+    `)
+    .get(req.params.boardId, email.trim());
+
+  if (pending) {
+    return res.status(409).json({
+      error: "An invitation for that email is already pending",
+    });
+  }
+
   const id = `invite_${nanoid(10)}`;
   const token = nanoid(32);
 
@@ -339,8 +355,7 @@ router.get("/:boardId/invitations", (req, res) => {
         board_id,
         email,
         status,
-        created_at,
-        expires_at
+        created_at
       FROM board_invitations
       WHERE board_id = ?
         AND status = 'pending'
