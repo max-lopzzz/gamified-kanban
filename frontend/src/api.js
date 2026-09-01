@@ -14,8 +14,28 @@ async function request(path, options = {}) {
       ...options.headers,
     },
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Request failed");
+  if (res.status === 401 && !path.startsWith("/auth/")) {
+    // Expired/invalid token: drop it and bounce to the login screen, rather
+    // than leaving the app stuck with a null user and no way to sign out.
+    // Auth endpoints (login/register) are exempt: a bad-credentials 401 there
+    // must fall through so the form can show its own error instead of reloading.
+    try {
+      localStorage.removeItem("qb_token");
+    } catch {}
+    if (typeof window !== "undefined") window.location.assign("/");
+    throw new Error("Session expired");
+  }
+
+  let data = null;
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) {
+    data = await res.json();
+  } else {
+    const text = await res.text();
+    if (!res.ok) throw new Error(text.slice(0, 200) || `Request failed (${res.status})`);
+    return text;
+  }
+  if (!res.ok) throw new Error((data && data.error) || `Request failed (${res.status})`);
   return data;
 }
 

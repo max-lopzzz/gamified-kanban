@@ -137,6 +137,47 @@ test("DELETE /api/sprints/:id 403 for a non-member", async () => {
   assert.equal(res.status, 403);
 });
 
+test("POST /api/sprints persists goal", async () => {
+  const { token, board } = await setupBoardWithSprint(app);
+
+  const res = await request(app)
+    .post("/api/sprints")
+    .set(authHeader(token))
+    .send({ boardId: board.id, name: "S-goal", goal: "ship it" });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.goal, "ship it");
+
+  const list = (
+    await request(app).get(`/api/sprints/board/${board.id}`).set(authHeader(token))
+  ).body;
+  const fetched = list.find((s) => s.id === res.body.id);
+  assert.equal(fetched.goal, "ship it");
+});
+
+test("POST /api/sprints with isActive:true leaves exactly one active sprint", async () => {
+  const { token, board } = await setupBoardWithSprint(app);
+
+  const a = await request(app)
+    .post("/api/sprints")
+    .set(authHeader(token))
+    .send({ boardId: board.id, name: "A", isActive: true });
+  assert.equal(a.status, 200);
+
+  const b = await request(app)
+    .post("/api/sprints")
+    .set(authHeader(token))
+    .send({ boardId: board.id, name: "B", isActive: true });
+  assert.equal(b.status, 200);
+
+  const list = (
+    await request(app).get(`/api/sprints/board/${board.id}`).set(authHeader(token))
+  ).body;
+  const active = list.filter((s) => s.is_active);
+  assert.equal(active.length, 1);
+  assert.equal(active[0].id, b.body.id);
+});
+
 test("GET /api/sprints/board/:boardId returns sprints without error", async () => {
   const { token, board } = await setupBoardWithSprint(app);
   await request(app)
