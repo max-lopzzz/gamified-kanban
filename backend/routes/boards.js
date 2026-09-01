@@ -433,10 +433,33 @@ router.delete("/:boardId", (req, res) => {
     });
   }
 
-  db.prepare(`
-    DELETE FROM boards
-    WHERE id = ?
-  `).run(req.params.boardId);
+  /*
+   * Delete every dependent row explicitly inside one transaction.
+   *
+   * We cannot rely on ON DELETE CASCADE: those clauses only exist on
+   * freshly-created tables. A pre-existing gamified_kanban.sqlite has the
+   * old FK definitions without cascade, and with `foreign_keys = ON`
+   * active a bare `DELETE FROM boards` would throw FOREIGN KEY constraint
+   * failed whenever the board still has tasks/teams/sprints/invitations.
+   */
+  const deleteBoard = db.transaction((boardId) => {
+    db.prepare(`
+      DELETE FROM task_dependencies
+      WHERE task_id IN (SELECT id FROM tasks WHERE board_id = ?)
+    `).run(boardId);
+    db.prepare("DELETE FROM tasks WHERE board_id = ?").run(boardId);
+    db.prepare(`
+      DELETE FROM team_members
+      WHERE team_id IN (SELECT id FROM teams WHERE board_id = ?)
+    `).run(boardId);
+    db.prepare("DELETE FROM teams WHERE board_id = ?").run(boardId);
+    db.prepare("DELETE FROM sprints WHERE board_id = ?").run(boardId);
+    db.prepare("DELETE FROM board_invitations WHERE board_id = ?").run(boardId);
+    db.prepare("DELETE FROM board_members WHERE board_id = ?").run(boardId);
+    db.prepare("DELETE FROM boards WHERE id = ?").run(boardId);
+  });
+
+  deleteBoard(req.params.boardId);
 
   res.json({ ok: true });
 });
