@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 
-const db = new Database("gamified_kanban.sqlite");
+const DB_PATH = process.env.DB_PATH || "gamified_kanban.sqlite";
+const db = new Database(DB_PATH);
 
 db.pragma("journal_mode = WAL");
 
