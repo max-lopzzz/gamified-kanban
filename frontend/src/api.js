@@ -21,19 +21,164 @@ async function request(path, options = {}) {
 
 export const api = {
   register: (email, password, displayName) =>
-    request("/auth/register", { method: "POST", body: JSON.stringify({ email, password, displayName }) }),
+    request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        password,
+        displayName,
+      }),
+    }),
+
   login: (email, password) =>
-    request("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+    request("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    }),
+
   me: () => request("/users/me"),
-  leaderboard: () => request("/users/leaderboard"),
-  boards: () => request("/boards"),
-  createBoard: (name) => request("/boards", { method: "POST", body: JSON.stringify({ name }) }),
-  board: (id) => request(`/boards/${id}`),
-  createTask: (payload) => request("/tasks", { method: "POST", body: JSON.stringify(payload) }),
+
+  leaderboard: () =>
+    request("/users/leaderboard"),
+
+  boards: () =>
+    request("/boards"),
+
+  createBoard: (name) =>
+    request("/boards", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
+
+  board: (id) =>
+    request(`/boards/${id}`),
+
+  deleteBoard: (id) =>
+    request(`/boards/${id}`, {
+      method: "DELETE",
+    }),
+
+  createTask: (payload) =>
+    request("/tasks", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   moveTask: (id, status, position) =>
-    request(`/tasks/${id}/move`, { method: "PATCH", body: JSON.stringify({ status, position }) }),
-  updateTask: (id, payload) => request(`/tasks/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
-  deleteTask: (id) => request(`/tasks/${id}`, { method: "DELETE" }),
+    request(`/tasks/${id}/move`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        status,
+        position,
+      }),
+    }),
+
+  updateTask: (id, payload) =>
+    request(`/tasks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  deleteTask: (id) =>
+    request(`/tasks/${id}`, {
+      method: "DELETE",
+    }),
+
+  // Board members
+  boardMembers: (boardId) =>
+    request(`/boards/${boardId}/members`),
+
+  removeBoardMember: (boardId, userId) =>
+    request(
+      `/boards/${boardId}/members/${userId}`,
+      {
+        method: "DELETE",
+      }
+    ),
+
+  // Invitations
+  inviteMember: (boardId, email) =>
+    request(`/boards/${boardId}/invitations`, {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  boardInvitations: (boardId) =>
+    request(`/boards/${boardId}/invitations`),
+
+  cancelInvitation: (boardId, invitationId) =>
+    request(
+      `/boards/${boardId}/invitations/${invitationId}`,
+      {
+        method: "DELETE",
+      }
+    ),
+
+  acceptInvitation: (token) =>
+    request(`/boards/invitations/${token}/accept`, {
+      method: "POST",
+    }),
+
+  // Teams
+  teams: (boardId) =>
+    request(`/teams/board/${boardId}`),
+
+  createTeam: (boardId, name) =>
+    request("/teams", {
+      method: "POST",
+      body: JSON.stringify({
+        boardId,
+        name,
+      }),
+    }),
+
+  teamMembers: (teamId) =>
+    request(`/teams/${teamId}/members`),
+
+  addTeamMember: (teamId, userId) =>
+    request(`/teams/${teamId}/members`, {
+      method: "POST",
+      body: JSON.stringify({
+        userId,
+      }),
+    }),
+
+  removeTeamMember: (teamId, userId) =>
+    request(
+      `/teams/${teamId}/members/${userId}`,
+      {
+        method: "DELETE",
+      }
+    ),
+
+  deleteTeam: (teamId) =>
+    request(`/teams/${teamId}`, {
+      method: "DELETE",
+    }),
+
+  // Sprints
+  sprints: (boardId) =>
+    request(`/sprints/board/${boardId}`),
+
+  createSprint: (payload) =>
+    request("/sprints", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  updateSprint: (sprintId, payload) =>
+    request(`/sprints/${sprintId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  deleteSprint: (sprintId) =>
+    request(`/sprints/${sprintId}`, {
+      method: "DELETE",
+    }),
 };
 
 export function setToken(token) {

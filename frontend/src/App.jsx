@@ -68,6 +68,20 @@ export default function App() {
     }
   }
 
+  function handleBoardDeleted(deletedBoardId) {
+    const remaining = boards.filter(
+      (board) => board.id !== deletedBoardId
+    );
+
+    setBoards(remaining);
+
+    if (remaining.length > 0) {
+      setActiveBoardId(remaining[0].id);
+    } else {
+      setActiveBoardId(null);
+    }
+  }
+
   if (!authed) {
     return <Login onAuthed={() => setAuthed(true)} />;
   }
@@ -111,6 +125,7 @@ export default function App() {
           boardId={activeBoardId}
           currentUserId={user.id}
           onGamificationEvent={handleGamificationEvent}
+          onBoardDeleted={handleBoardDeleted}
         />
       )}
 
