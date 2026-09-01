@@ -661,3 +661,251 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
 
 .leaderboard-name { color: var(--text); }
 .leaderboard-xp { color: var(--gold); font-weight: 600; }
+
+/* ---------- SprintBar ---------- */
+.sprint-bar { margin: var(--space-3) 0; }
+
+.sprint-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.sprint-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: var(--space-1) var(--space-3);
+  font-size: 13px;
+}
+
+.sprint-chip:hover { border-color: var(--border-strong); color: var(--text); }
+
+.sprint-chip.selected {
+  background: var(--surface-raised);
+  color: var(--text);
+  border-color: var(--border-strong);
+  font-weight: 600;
+}
+
+.sprint-chip.is-active { border-color: var(--teal); color: var(--teal); }
+
+.sprint-progress {
+  margin-top: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.sprint-progress-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.sprint-goal { color: var(--text); font-style: italic; }
+
+.sprint-progress-track {
+  height: 8px;
+  background: var(--xp-track);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.sprint-progress-fill {
+  height: 100%;
+  background: var(--xp-fill);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- Board settings (two-pane) ---------- */
+.settings-page { max-width: 960px; }
+
+.settings-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.settings-topbar h2 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: var(--space-6);
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.settings-nav-item {
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+
+.settings-nav-item:hover { color: var(--text); background: var(--surface); }
+
+.settings-nav-item.active {
+  background: var(--surface-raised);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.settings-content { min-width: 0; }
+
+.settings-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.settings-section h3 {
+  font-family: var(--font-display);
+  margin-top: 0;
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+}
+
+.settings-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.settings-list-item small { color: var(--text-faint); display: block; }
+.settings-list-item strong { display: block; }
+
+.settings-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-3);
+}
+
+.member-role {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.invite-url-row {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.invite-url-row input { flex: 1; }
+
+/* ---------- Team & sprint cards ---------- */
+.team-list, .sprint-list { margin: var(--space-4) 0; }
+
+.team-card, .sprint-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.team-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.team-member {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+}
+
+.sprint-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.sprint-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* ---------- Invite-accept page ---------- */
+.invite-accept {
+  max-width: 480px;
+  margin: var(--space-8) auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+}
+
+.invite-accept h2 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 var(--space-4);
+}
+
+.invite-accept .error-message { margin-bottom: var(--space-3); }
+
+/* ---------- Dependency pickers ---------- */
+.dependency-picker { margin-top: var(--space-2); }
+
+.dependency-list, .dependency-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-2) 0;
+}
+
+.dependency-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ---------- Settings responsive collapse ---------- */
+@media (max-width: 720px) {
+  .settings-layout { grid-template-columns: 1fr; }
+  .settings-nav { flex-direction: row; flex-wrap: wrap; }
+}
