@@ -14,7 +14,8 @@ export default function Board({
   boardId,
   currentUserId,
   onGamificationEvent,
-  onBoardDeleted,
+  sprintFilter = "all",
+  onBoardLoaded,
 }) {
   const [board, setBoard] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +28,7 @@ export default function Board({
       const data = await api.board(boardId);
 
       setBoard(data);
+      onBoardLoaded?.(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -71,29 +73,6 @@ export default function Board({
     try {
       await api.deleteTask(task.id);
       await refresh();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleDeleteBoard() {
-    const confirmation = window.prompt(
-      `WARNING: This will permanently delete "${board.name}" and all of its tasks.\n\nType the board name to confirm deletion:`
-    );
-
-    if (confirmation !== board.name) {
-      if (confirmation !== null) {
-        window.alert(
-          "Board name did not match. The board was not deleted."
-        );
-      }
-
-      return;
-    }
-
-    try {
-      await api.deleteBoard(board.id);
-      onBoardDeleted(board.id);
     } catch (err) {
       setError(err.message);
     }
@@ -146,7 +125,11 @@ export default function Board({
     );
   }
 
-  const isOwner = board.owner_id === currentUserId;
+  const visibleTasks = (board.tasks || []).filter((t) => {
+    if (sprintFilter === "all") return true;
+    if (sprintFilter === "backlog") return t.sprint_id == null;
+    return t.sprint_id === sprintFilter;
+  });
 
   return (
     <div className="board-page">
@@ -168,16 +151,6 @@ export default function Board({
             {board.sprints?.length || 0} sprints
           </div>
         </div>
-
-        {isOwner && (
-          <button
-            className="btn-danger"
-            type="button"
-            onClick={handleDeleteBoard}
-          >
-            Delete board
-          </button>
-        )}
       </div>
 
       <DndContext onDragEnd={handleDragEnd}>
@@ -187,10 +160,10 @@ export default function Board({
               key={col.status}
               status={col.status}
               title={col.title}
-              tasks={board.tasks.filter(
+              tasks={visibleTasks.filter(
                 (t) => t.status === col.status
               )}
-              allTasks={board.tasks}
+              allTasks={visibleTasks}
               board={board}
               onCreateTask={handleCreateTask}
               onUpdateTask={handleUpdateTask}
