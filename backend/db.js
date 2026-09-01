@@ -158,6 +158,16 @@ addColumnIfMissing(
   "TEXT"
 );
 
+addColumnIfMissing(
+  "sprints",
+  "created_at",
+  "TEXT NOT NULL DEFAULT (datetime('now'))"
+);
+
+addColumnIfMissing("sprints", "goal", "TEXT DEFAULT ''");
+
+addColumnIfMissing("teams", "description", "TEXT DEFAULT ''");
+
 // Seed default achievements if empty
 const count = db.prepare("SELECT COUNT(*) as c FROM achievements").get().c;
 
