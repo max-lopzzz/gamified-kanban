@@ -3,7 +3,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
   },
   "dependencies": {
     "better-sqlite3": "^11.3.0",
