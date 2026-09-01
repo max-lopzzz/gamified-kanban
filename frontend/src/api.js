@@ -126,12 +126,13 @@ export const api = {
   teams: (boardId) =>
     request(`/teams/board/${boardId}`),
 
-  createTeam: (boardId, name) =>
+  createTeam: (boardId, name, description = "") =>
     request("/teams", {
       method: "POST",
       body: JSON.stringify({
         boardId,
         name,
+        description,
       }),
     }),
 
@@ -163,10 +164,17 @@ export const api = {
   sprints: (boardId) =>
     request(`/sprints/board/${boardId}`),
 
-  createSprint: (payload) =>
+  createSprint: (boardId, name, startsAt, endsAt, goal = "") =>
     request("/sprints", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        boardId,
+        name,
+        startsAt: startsAt || null,
+        endsAt: endsAt || null,
+        goal,
+        isActive: false,
+      }),
     }),
 
   updateSprint: (sprintId, payload) =>
