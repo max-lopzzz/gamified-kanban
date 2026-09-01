@@ -1,0 +1,94 @@
+import test, { after } from "node:test";
+import assert from "node:assert/strict";
+import request from "supertest";
+import { makeApp, registerUser, authHeader } from "./helpers.js";
+
+const { app, cleanup } = await makeApp();
+after(cleanup);
+
+let uniqueCounter = 0;
+function uniqueEmail(prefix) {
+  uniqueCounter += 1;
+  return `${prefix}${uniqueCounter}@x.com`;
+}
+
+async function ownerWithBoard(tag) {
+  const { token, user } = await registerUser(app, { email: `own${tag}@x.com` });
+  const board = (
+    await request(app).post("/api/boards").set(authHeader(token)).send({ name: "B" })
+  ).body;
+  return { token, user, board };
+}
+
+test("POST /api/teams creates a team with description for the owner", async () => {
+  const { token, board } = await ownerWithBoard("a");
+
+  const res = await request(app)
+    .post("/api/teams")
+    .set(authHeader(token))
+    .send({ boardId: board.id, name: "Frontend", description: "UI crew" });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.name, "Frontend");
+  assert.equal(res.body.description, "UI crew");
+});
+
+test("POST /api/teams 403 for a non-owner", async () => {
+  const { board } = await ownerWithBoard("b");
+  const outsider = await registerUser(app, { email: uniqueEmail("nope-b") });
+
+  const res = await request(app)
+    .post("/api/teams")
+    .set(authHeader(outsider.token))
+    .send({ boardId: board.id, name: "X" });
+
+  assert.equal(res.status, 403);
+});
+
+test("team member add/remove works for the owner and cascades on delete", async () => {
+  const { token, board } = await ownerWithBoard("c");
+  const team = (
+    await request(app)
+      .post("/api/teams")
+      .set(authHeader(token))
+      .send({ boardId: board.id, name: "T" })
+  ).body;
+  const member = await registerUser(app, { email: "m-c@x.com" });
+
+  // add the new user to the board first via an accepted invitation
+  const invite = (
+    await request(app)
+      .post(`/api/boards/${board.id}/invitations`)
+      .set(authHeader(token))
+      .send({ email: "m-c@x.com" })
+  ).body;
+  await request(app)
+    .post(`/api/boards/invitations/${invite.token}/accept`)
+    .set(authHeader(member.token));
+
+  const add = await request(app)
+    .post(`/api/teams/${team.id}/members`)
+    .set(authHeader(token))
+    .send({ userId: member.user.id });
+  assert.equal(add.status, 200);
+
+  let members = (
+    await request(app).get(`/api/teams/${team.id}/members`).set(authHeader(token))
+  ).body;
+  assert.equal(members.length, 1);
+
+  await request(app).delete(`/api/teams/${team.id}`).set(authHeader(token));
+  const list = (
+    await request(app).get(`/api/teams/board/${board.id}`).set(authHeader(token))
+  ).body;
+  assert.equal(list.length, 0);
+});
+
+test("GET /api/teams/board/:boardId 403 for a non-member", async () => {
+  const { board } = await ownerWithBoard("d");
+  const outsider = await registerUser(app, { email: uniqueEmail("nope-d") });
+  const res = await request(app)
+    .get(`/api/teams/board/${board.id}`)
+    .set(authHeader(outsider.token));
+  assert.equal(res.status, 403);
+});
