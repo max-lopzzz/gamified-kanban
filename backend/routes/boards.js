@@ -4,6 +4,30 @@ import db from "../db.js";
 
 const router = Router();
 
+function isBoardMember(boardId, userId) {
+  const board = db
+    .prepare("SELECT owner_id FROM boards WHERE id = ?")
+    .get(boardId);
+
+  if (!board) {
+    return false;
+  }
+
+  if (board.owner_id === userId) {
+    return true;
+  }
+
+  return Boolean(
+    db
+      .prepare(`
+        SELECT 1
+        FROM board_members
+        WHERE board_id = ? AND user_id = ?
+      `)
+      .get(boardId, userId)
+  );
+}
+
 /*
  * List boards the user owns or belongs to
  */
@@ -67,6 +91,12 @@ router.get("/:boardId", (req, res) => {
     });
   }
 
+  if (!isBoardMember(req.params.boardId, req.userId)) {
+    return res.status(403).json({
+      error: "You are not a member of this board",
+    });
+  }
+
   const tasks = db
     .prepare(`
       SELECT *
@@ -78,10 +108,13 @@ router.get("/:boardId", (req, res) => {
 
   const dependencyRows = db
     .prepare(`
-      SELECT d.task_id, d.depends_on_task_id, t.title
-      FROM task_dependencies d
-      JOIN tasks t ON t.id = d.depends_on_task_id
-      WHERE d.task_id IN (
+      SELECT
+        td.task_id,
+        td.depends_on_task_id,
+        t.title
+      FROM task_dependencies td
+      JOIN tasks t ON t.id = td.depends_on_task_id
+      WHERE td.task_id IN (
         SELECT id FROM tasks WHERE board_id = ?
       )
     `)
@@ -290,6 +323,12 @@ router.get("/:boardId/members", (req, res) => {
     });
   }
 
+    if (!isBoardMember(req.params.boardId, req.userId)) {
+      return res.status(403).json({
+        error: "You are not a member of this board",
+      });
+    }
+
   const members = db
     .prepare(`
       SELECT
@@ -333,10 +372,10 @@ router.delete("/:boardId/members/:userId", (req, res) => {
     });
   }
 
-  db.prepare(`
-    DELETE FROM board_members
-    WHERE board_id = ? AND user_id = ?
-  `).run(req.params.boardId, req.params.userId);
+    db.prepare(`
+      DELETE FROM board_members
+      WHERE board_id = ? AND user_id = ?
+    `).run(req.params.boardId, req.params.userId);
 
   res.json({ ok: true });
 });
@@ -446,7 +485,8 @@ router.delete("/:boardId", (req, res) => {
     db.prepare(`
       DELETE FROM task_dependencies
       WHERE task_id IN (SELECT id FROM tasks WHERE board_id = ?)
-    `).run(boardId);
+        OR depends_on_task_id IN (SELECT id FROM tasks WHERE board_id = ?)
+    `).run(boardId, boardId);
     db.prepare("DELETE FROM tasks WHERE board_id = ?").run(boardId);
     db.prepare(`
       DELETE FROM team_members
