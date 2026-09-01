@@ -410,7 +410,7 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
 }
 
 @keyframes toast-in {
-  from { opacity: 0; transform: translate(-50%, -12px); }
+  from { opacity: 0; transform: translate(-50%, -8px); }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 
@@ -908,4 +908,34 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
 @media (max-width: 720px) {
   .settings-layout { grid-template-columns: 1fr; }
   .settings-nav { flex-direction: row; flex-wrap: wrap; }
+}
+
+/* ---------- Motion ---------- */
+.task-card {
+  transition: box-shadow 120ms ease, transform 120ms ease;
+}
+
+.task-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* .levelup-toast and .achievement-toast animations updated for reduced-motion support */
+.levelup-toast, .achievement-toast {
+  animation: toast-in 200ms ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-card, .task-card:hover {
+    transition: none;
+    transform: none;
+  }
+
+  .sprint-progress-fill {
+    transition: none;
+  }
+
+  .levelup-toast, .achievement-toast {
+    animation: none;
+  }
 }
