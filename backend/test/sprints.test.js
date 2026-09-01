@@ -108,3 +108,17 @@ test("DELETE /api/sprints/:id 403 for a non-member", async () => {
     .set(authHeader(outsider.token));
   assert.equal(res.status, 403);
 });
+
+test("GET /api/sprints/board/:boardId returns sprints without error", async () => {
+  const { token, board } = await setupBoardWithSprint(app);
+  await request(app)
+    .post("/api/sprints")
+    .set(authHeader(token))
+    .send({ boardId: board.id, name: "S2", startsAt: "2026-01-01" });
+
+  const res = await request(app)
+    .get(`/api/sprints/board/${board.id}`)
+    .set(authHeader(token));
+  assert.equal(res.status, 200);
+  assert.equal(res.body.length, 2);
+});
