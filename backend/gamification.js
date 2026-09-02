@@ -1,16 +1,7 @@
 import db from "./db.js";
+import { xpForLevel, levelFromXp } from "./lib/leveling.js";
 
-// --- XP curve -------------------------------------------------------------
-// XP required to reach level N (from level 1). Gentle early, steeper later.
-export function xpForLevel(level) {
-  return Math.round(50 * Math.pow(level, 1.6));
-}
-
-export function levelFromXp(xp) {
-  let level = 1;
-  while (xp >= xpForLevel(level + 1)) level++;
-  return level;
-}
+export { xpForLevel, levelFromXp };
 
 // --- XP reward for completing a task --------------------------------------
 const PRIORITY_MULTIPLIER = { low: 0.75, normal: 1, high: 1.25, urgent: 1.5 };
