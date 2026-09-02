@@ -74,6 +74,15 @@ export default function Login({ onAuthed }) {
           {mode === "login" ? "Need an account? Register" : "Already have an account? Log in"}
         </button>
       </div>
+      <footer className="app-footer">
+        <a
+          href="https://ko-fi.com/maximiliano66848"
+          target="_blank"
+          rel="noreferrer"
+        >
+          ☕ Support on Ko-fi
+        </a>
+      </footer>
     </div>
   );
 }

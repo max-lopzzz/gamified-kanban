@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { nanoid } from "nanoid";
 import db from "../db.js";
+import { withDerivedActive } from "../lib/sprint-status.js";
 
 const router = Router();
 
@@ -156,14 +157,13 @@ router.get("/:boardId", (req, res) => {
     `)
     .all(req.params.boardId);
 
-  const sprints = db
-    .prepare(`
-      SELECT *
-      FROM sprints
-      WHERE board_id = ?
-      ORDER BY starts_at ASC
-    `)
-    .all(req.params.boardId);
+  const sprints = withDerivedActive(
+    db
+      .prepare(
+        `SELECT * FROM sprints WHERE board_id = ? ORDER BY starts_at ASC`
+      )
+      .all(req.params.boardId)
+  );
 
   res.json({
     ...board,

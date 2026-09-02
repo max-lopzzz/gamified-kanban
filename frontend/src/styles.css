@@ -972,6 +972,53 @@ label:not(.dependency-option) {
   flex-shrink: 0;
 }
 
+.sprint-card h4 { margin: 0 0 var(--space-1); }
+.sprint-card p { margin: 0 0 var(--space-1); color: var(--text-muted); font-size: 13px; }
+
+.sprint-status {
+  display: inline-block;
+  margin-top: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.sprint-status-active {
+  background: color-mix(in srgb, var(--teal) 18%, transparent);
+  color: var(--teal);
+}
+.sprint-status-upcoming {
+  background: color-mix(in srgb, var(--gold) 16%, transparent);
+  color: var(--gold);
+}
+.sprint-status-ended {
+  background: color-mix(in srgb, var(--text-faint) 18%, transparent);
+  color: var(--text-muted);
+}
+
+.settings-hint {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 0 0 var(--space-4);
+}
+
+/* ---------- Footer ---------- */
+.app-footer {
+  text-align: center;
+  padding: var(--space-5) var(--space-4) var(--space-6);
+  color: var(--text-faint);
+  font-size: 12px;
+}
+.app-footer a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.app-footer a:hover {
+  color: var(--gold);
+}
+
 /* ---------- Invite-accept page ---------- */
 .invite-accept {
   max-width: 480px;
