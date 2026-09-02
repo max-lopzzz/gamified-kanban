@@ -77,6 +77,13 @@ test("team member add/remove works for the owner and cascades on delete", async 
   ).body;
   assert.equal(members.length, 1);
 
+  // the board payload exposes each team's member ids (used by board filters)
+  const boardTeams = (
+    await request(app).get(`/api/boards/${board.id}`).set(authHeader(token))
+  ).body.teams;
+  const t = boardTeams.find((x) => x.id === team.id);
+  assert.deepEqual(t.member_ids, [member.user.id]);
+
   await request(app).delete(`/api/teams/${team.id}`).set(authHeader(token));
   const list = (
     await request(app).get(`/api/teams/board/${board.id}`).set(authHeader(token))
