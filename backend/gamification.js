@@ -109,8 +109,17 @@ export function awardTaskCompletion(userId, task) {
 
   const totalCompleted = db
     .prepare(
-      `SELECT COUNT(*) as c FROM tasks
-       WHERE (assignee_id = ? OR completed_by = ?) AND status = 'done'`
+      `SELECT COUNT(DISTINCT t.id) AS c FROM tasks t
+       WHERE t.status = 'done'
+         AND (
+           t.completed_by = ?
+           OR EXISTS (
+             SELECT 1 FROM task_assignees ta
+             WHERE ta.task_id = t.id
+               AND ta.assignee_type = 'user'
+               AND ta.assignee_id = ?
+           )
+         )`
     )
     .get(userId, userId).c;
 

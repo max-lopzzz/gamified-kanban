@@ -1,5 +1,15 @@
 import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
+import AssigneePicker from "./AssigneePicker.jsx";
+
+function initials(name) {
+  return (name || "?")
+    .split(/\s+/)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
 
 const XP_PER_POINT = 10;
 
@@ -45,6 +55,9 @@ export default function TaskCard({
   const [sprintId, setSprintId] = useState(
     task.sprint_id || ""
   );
+  const [assignees, setAssignees] = useState(
+    (task.assignees || []).map((a) => ({ type: a.type, id: a.id }))
+  );
 
   const style = transform
     ? {
@@ -70,6 +83,7 @@ export default function TaskCard({
         priority,
         storyPoints: Number(points),
         dependencyIds,
+        assignees,
         sprintId: sprintId || null,
       });
     } catch {
@@ -150,6 +164,13 @@ export default function TaskCard({
               </option>
             ))}
           </select>
+
+          <label>Assignees</label>
+          <AssigneePicker
+            board={board}
+            value={assignees}
+            onChange={setAssignees}
+          />
 
           {allTasks.filter((t) => t.id !== task.id).length >
             0 && (
@@ -245,6 +266,20 @@ export default function TaskCard({
             +{xp} XP
           </span>
         </div>
+
+        {task.assignees?.length > 0 && (
+          <div className="task-assignees">
+            {task.assignees.map((a) => (
+              <span
+                key={`${a.type}_${a.id}`}
+                className={`assignee-chip assignee-chip-${a.type}`}
+                title={a.name || a.id}
+              >
+                {a.type === "team" ? a.name : initials(a.name)}
+              </span>
+            ))}
+          </div>
+        )}
 
         {task.dependencies?.length > 0 && (
           <div className="task-dependencies">

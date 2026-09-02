@@ -81,8 +81,8 @@ test("task PATCH replaces dependencyIds", async () => {
   assert.deepEqual(ct.dependencies.map((d) => d.id), [b.id]);
 });
 
-test("task create round-trips assignee_type and team_id", async () => {
-  const { token, board } = await boardCtx("3");
+test("a task can be created with several assignees (people + teams)", async () => {
+  const { token, user, board } = await boardCtx("3");
   const team = (
     await request(app)
       .post("/api/teams")
@@ -94,11 +94,90 @@ test("task create round-trips assignee_type and team_id", async () => {
     await request(app)
       .post("/api/tasks")
       .set(authHeader(token))
-      .send({ boardId: board.id, title: "X", assigneeType: "team", teamId: team.id })
+      .send({
+        boardId: board.id,
+        title: "X",
+        assignees: [
+          { type: "user", id: user.id },
+          { type: "team", id: team.id },
+        ],
+      })
   ).body;
 
-  assert.equal(task.assignee_type, "team");
-  assert.equal(task.team_id, team.id);
+  assert.equal(task.assignees.length, 2);
+  assert.ok(task.assignees.some((a) => a.type === "user" && a.id === user.id));
+  assert.ok(task.assignees.some((a) => a.type === "team" && a.id === team.id));
+
+  // PATCH replaces the set
+  const patched = (
+    await request(app)
+      .patch(`/api/tasks/${task.id}`)
+      .set(authHeader(token))
+      .send({ assignees: [{ type: "team", id: team.id }] })
+  ).body;
+  assert.equal(patched.assignees.length, 1);
+  assert.equal(patched.assignees[0].type, "team");
+
+  // a non-member cannot be assigned
+  const bad = await request(app)
+    .patch(`/api/tasks/${task.id}`)
+    .set(authHeader(token))
+    .send({ assignees: [{ type: "user", id: "user_not_here" }] });
+  assert.equal(bad.status, 400);
+});
+
+test("every assignee gets full XP when a multi-assignee task is completed", async () => {
+  const { token: ownerTok, user: owner, board } = await boardCtx("multi-xp");
+
+  // add a second member via an accepted invitation
+  const other = await registerUser(app, { email: uniqueEmail("mate") });
+  const inv = (
+    await request(app)
+      .post(`/api/boards/${board.id}/invitations`)
+      .set(authHeader(ownerTok))
+      .send({ email: other.user.email })
+  ).body;
+  await request(app)
+    .post(`/api/boards/invitations/${inv.token}/accept`)
+    .set(authHeader(other.token));
+
+  const task = (
+    await request(app)
+      .post("/api/tasks")
+      .set(authHeader(ownerTok))
+      .send({
+        boardId: board.id,
+        title: "shared",
+        storyPoints: 4,
+        assignees: [
+          { type: "user", id: owner.id },
+          { type: "user", id: other.user.id },
+        ],
+      })
+  ).body;
+
+  const ownerXpBefore = (
+    await request(app).get("/api/users/me").set(authHeader(ownerTok))
+  ).body.xp;
+  const otherXpBefore = (
+    await request(app).get("/api/users/me").set(authHeader(other.token))
+  ).body.xp;
+
+  await request(app)
+    .patch(`/api/tasks/${task.id}/move`)
+    .set(authHeader(ownerTok))
+    .send({ status: "done", position: 0 });
+
+  const ownerXpAfter = (
+    await request(app).get("/api/users/me").set(authHeader(ownerTok))
+  ).body.xp;
+  const otherXpAfter = (
+    await request(app).get("/api/users/me").set(authHeader(other.token))
+  ).body.xp;
+
+  assert.ok(ownerXpAfter > ownerXpBefore);
+  assert.ok(otherXpAfter > otherXpBefore, "the other assignee also got XP");
+  assert.equal(ownerXpAfter - ownerXpBefore, otherXpAfter - otherXpBefore);
 });
 
 test("POST /api/tasks 403 for a non-member of the board", async () => {

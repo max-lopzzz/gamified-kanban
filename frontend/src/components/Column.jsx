@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import TaskCard from "./TaskCard.jsx";
+import AssigneePicker from "./AssigneePicker.jsx";
 
 function defaultSprintFor(sprintFilter) {
   return sprintFilter && sprintFilter !== "all" && sprintFilter !== "backlog"
@@ -30,14 +31,7 @@ export default function Column({
   const [priority, setPriority] = useState("normal");
   const [points, setPoints] = useState(2);
 
-  const [assigneeType, setAssigneeType] =
-    useState("unassigned");
-
-  const [assigneeId, setAssigneeId] =
-    useState("");
-
-  const [teamId, setTeamId] =
-    useState("");
+  const [assignees, setAssignees] = useState([]);
 
   const [sprintId, setSprintId] = useState(
     defaultSprintFor(sprintFilter)
@@ -57,25 +51,13 @@ export default function Column({
 
     if (!title_.trim()) return;
 
-    if (assigneeType === "user" && !assigneeId) {
-      alert("Please select a person.");
-      return;
-    }
-
-    if (assigneeType === "team" && !teamId) {
-      alert("Please select a team.");
-      return;
-    }
-
     try {
       await onCreateTask({
         title: title_.trim(),
         description,
         priority,
         storyPoints: Number(points),
-        assigneeType,
-        assigneeId: assigneeType === "user" ? assigneeId : null,
-        teamId: assigneeType === "team" ? teamId : null,
+        assignees,
         sprintId: sprintId || null,
         dependencyIds,
       });
@@ -88,9 +70,7 @@ export default function Column({
     setDescription("");
     setPriority("normal");
     setPoints(2);
-    setAssigneeType("unassigned");
-    setAssigneeId("");
-    setTeamId("");
+    setAssignees([]);
     setSprintId(defaultSprintFor(sprintFilter));
     setDependencyIds([]);
     setShowForm(false);
@@ -179,70 +159,12 @@ export default function Column({
                 />
               </div>
 
-              <label>
-                Assignee
-              </label>
-
-              <select
-                value={assigneeType}
-                onChange={(e) =>
-                  setAssigneeType(e.target.value)
-                }
-              >
-                <option value="unassigned">
-                  Up for grabs
-                </option>
-                <option value="user">
-                  Specific person
-                </option>
-                <option value="team">
-                  Specific team
-                </option>
-              </select>
-
-              {assigneeType === "user" && (
-                <select
-                  value={assigneeId}
-                  onChange={(e) =>
-                    setAssigneeId(e.target.value)
-                  }
-                >
-                  <option value="">
-                    Select person
-                  </option>
-
-                  {(board.members || []).map((member) => (
-                    <option
-                      key={member.id}
-                      value={member.id}
-                    >
-                      {member.display_name}
-                    </option>
-                  ))}
-                </select>
-              )}
-
-              {assigneeType === "team" && (
-                <select
-                  value={teamId}
-                  onChange={(e) =>
-                    setTeamId(e.target.value)
-                  }
-                >
-                  <option value="">
-                    Select team
-                  </option>
-
-                  {(board.teams || []).map((team) => (
-                    <option
-                      key={team.id}
-                      value={team.id}
-                    >
-                      {team.name}
-                    </option>
-                  ))}
-                </select>
-              )}
+              <label>Assignees</label>
+              <AssigneePicker
+                board={board}
+                value={assignees}
+                onChange={setAssignees}
+              />
 
               <label>
                 Sprint

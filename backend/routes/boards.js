@@ -129,9 +129,49 @@ router.get("/:boardId", (req, res) => {
     });
   }
 
+  const assigneeRows = db
+    .prepare(`
+      SELECT
+        ta.task_id,
+        ta.assignee_type AS type,
+        ta.assignee_id AS id,
+        CASE ta.assignee_type
+          WHEN 'user' THEN (SELECT display_name FROM users WHERE id = ta.assignee_id)
+          WHEN 'team' THEN (SELECT name FROM teams WHERE id = ta.assignee_id)
+        END AS name
+      FROM task_assignees ta
+      WHERE ta.task_id IN (SELECT id FROM tasks WHERE board_id = ?)
+    `)
+    .all(req.params.boardId);
+
+  const assigneesByTask = {};
+  for (const row of assigneeRows) {
+    (assigneesByTask[row.task_id] ||= []).push({
+      type: row.type,
+      id: row.id,
+      name: row.name,
+    });
+  }
+
+  const subtaskRows = db
+    .prepare(`
+      SELECT id, task_id, title, done, position
+      FROM subtasks
+      WHERE task_id IN (SELECT id FROM tasks WHERE board_id = ?)
+      ORDER BY position ASC, created_at ASC
+    `)
+    .all(req.params.boardId);
+
+  const subtasksByTask = {};
+  for (const row of subtaskRows) {
+    (subtasksByTask[row.task_id] ||= []).push(row);
+  }
+
   const tasksWithDeps = tasks.map((task) => ({
     ...task,
     dependencies: dependenciesByTask[task.id] || [],
+    assignees: assigneesByTask[task.id] || [],
+    subtasks: subtasksByTask[task.id] || [],
   }));
 
   const members = db
