@@ -5,7 +5,6 @@ you up, tracks daily streaks, and unlocks achievements. Built as a real, runnabl
 codebase (not a mockup) so you can extend it into an actual product.
 
 **Live demo:** <https://gamified-kanban.vercel.app>
-(a shared board to poke at: <https://gamified-kanban.vercel.app/board/board_aFCVaT0lkA> — sign in first)
 
 If this is useful to you: [☕ support the project on Ko-fi](https://ko-fi.com/maximiliano66848).
 
