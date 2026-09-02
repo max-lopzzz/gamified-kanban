@@ -69,6 +69,13 @@ export default function Board({
     }
   }
 
+  // A subtask edit changed something server-side (and maybe auto-completed the
+  // task). Fire the toast if XP was awarded, then reload.
+  async function handleTaskMutated(gamification) {
+    if (gamification) onGamificationEvent(gamification);
+    await refresh();
+  }
+
   async function handleDeleteTask(task) {
     const confirmed = window.confirm(
       `Delete "${task.title}"?\n\nThis action cannot be undone.`
@@ -175,6 +182,7 @@ export default function Board({
               onCreateTask={handleCreateTask}
               onUpdateTask={handleUpdateTask}
               onDeleteTask={handleDeleteTask}
+              onTaskMutated={handleTaskMutated}
             />
           ))}
         </div>

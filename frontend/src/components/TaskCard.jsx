@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import AssigneePicker from "./AssigneePicker.jsx";
+import { api } from "../api";
 
 function initials(name) {
   return (name || "?")
@@ -26,6 +27,7 @@ export default function TaskCard({
   board,
   onUpdate,
   onDelete,
+  onTaskMutated,
 }) {
   const {
     attributes,
@@ -58,6 +60,56 @@ export default function TaskCard({
   const [assignees, setAssignees] = useState(
     (task.assignees || []).map((a) => ({ type: a.type, id: a.id }))
   );
+
+  // Subtasks are edited live (each toggle is its own request), so keep a local
+  // copy that also resyncs when the board reloads.
+  const [subtasks, setSubtasks] = useState(task.subtasks || []);
+  const [newSubtask, setNewSubtask] = useState("");
+  useEffect(() => {
+    setSubtasks(task.subtasks || []);
+  }, [JSON.stringify(task.subtasks || [])]);
+
+  const subDone = subtasks.filter((s) => s.done).length;
+  const subPct = subtasks.length
+    ? Math.round((subDone / subtasks.length) * 100)
+    : 0;
+
+  async function addSubtask(e) {
+    e.preventDefault();
+    const title = newSubtask.trim();
+    if (!title) return;
+    try {
+      const created = await api.createSubtask(task.id, title);
+      setSubtasks((cur) => [...cur, created]);
+      setNewSubtask("");
+    } catch {
+      /* ignore; keep the input */
+    }
+  }
+
+  async function toggleSubtask(sub) {
+    const next = !sub.done;
+    setSubtasks((cur) =>
+      cur.map((s) => (s.id === sub.id ? { ...s, done: next ? 1 : 0 } : s))
+    );
+    try {
+      const res = await api.updateSubtask(sub.id, { done: next });
+      if (res.taskCompleted) onTaskMutated?.(res.gamification);
+    } catch {
+      setSubtasks((cur) =>
+        cur.map((s) => (s.id === sub.id ? { ...s, done: next ? 0 : 1 } : s))
+      );
+    }
+  }
+
+  async function removeSubtask(sub) {
+    setSubtasks((cur) => cur.filter((s) => s.id !== sub.id));
+    try {
+      await api.deleteSubtask(sub.id);
+    } catch {
+      setSubtasks((cur) => [...cur, sub]);
+    }
+  }
 
   const style = transform
     ? {
@@ -172,6 +224,53 @@ export default function TaskCard({
             onChange={setAssignees}
           />
 
+          <label>
+            Checklist
+            {subtasks.length > 0 && ` — ${subDone}/${subtasks.length}`}
+          </label>
+          <div className="subtask-list">
+            {subtasks.map((s) => (
+              <div key={s.id} className="subtask-row">
+                <label className="dependency-option">
+                  <input
+                    type="checkbox"
+                    checked={!!s.done}
+                    onChange={() => toggleSubtask(s)}
+                  />
+                  <span className={s.done ? "subtask-done" : undefined}>
+                    {s.title}
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  className="subtask-remove"
+                  title="Remove"
+                  onClick={() => removeSubtask(s)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="new-task-row">
+            <input
+              type="text"
+              placeholder="Add a checklist item"
+              value={newSubtask}
+              onChange={(e) => setNewSubtask(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") addSubtask(e);
+              }}
+            />
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={addSubtask}
+            >
+              Add
+            </button>
+          </div>
+
           {allTasks.filter((t) => t.id !== task.id).length >
             0 && (
             <div className="dependency-picker">
@@ -266,6 +365,20 @@ export default function TaskCard({
             +{xp} XP
           </span>
         </div>
+
+        {subtasks.length > 0 && (
+          <div className="subtask-progress">
+            <div className="subtask-progress-track">
+              <div
+                className="subtask-progress-fill"
+                style={{ width: `${subPct}%` }}
+              />
+            </div>
+            <span className="subtask-progress-label">
+              {subDone}/{subtasks.length}
+            </span>
+          </div>
+        )}
 
         {task.assignees?.length > 0 && (
           <div className="task-assignees">

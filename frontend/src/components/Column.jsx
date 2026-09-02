@@ -19,6 +19,7 @@ export default function Column({
   sprintFilter,
   onUpdateTask,
   onDeleteTask,
+  onTaskMutated,
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
@@ -105,6 +106,7 @@ export default function Column({
             board={board}
             onUpdate={onUpdateTask}
             onDelete={onDeleteTask}
+            onTaskMutated={onTaskMutated}
             allTasks={allTasks}
           />
         ))}

@@ -1116,6 +1116,57 @@ label:not(.dependency-option) {
   border-color: color-mix(in srgb, var(--teal) 40%, transparent);
 }
 
+/* ---------- Subtasks ---------- */
+.subtask-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.subtask-progress-track {
+  flex: 1;
+  height: 6px;
+  background: var(--xp-track);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.subtask-progress-fill {
+  height: 100%;
+  background: var(--teal);
+  transition: width 200ms ease;
+}
+.subtask-progress-label {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.subtask-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+}
+.subtask-list:empty { display: none; }
+.subtask-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.subtask-row .dependency-option { flex: 1; }
+.subtask-done {
+  text-decoration: line-through;
+  color: var(--text-faint);
+}
+.subtask-remove {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 var(--space-1);
+}
+.subtask-remove:hover { color: var(--danger); }
+
 /* ---------- Settings responsive collapse ---------- */
 @media (max-width: 720px) {
   .settings-layout { grid-template-columns: 1fr; }

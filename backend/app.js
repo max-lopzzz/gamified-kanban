@@ -7,6 +7,7 @@ import taskRoutes from "./routes/tasks.js";
 import userRoutes from "./routes/users.js";
 import teamRoutes from "./routes/teams.js";
 import sprintRoutes from "./routes/sprints.js";
+import subtaskRoutes from "./routes/subtasks.js";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use("/api/tasks", authMiddleware, taskRoutes);
 app.use("/api/teams", authMiddleware, teamRoutes);
 app.use("/api/users", authMiddleware, userRoutes);
 app.use("/api/sprints", authMiddleware, sprintRoutes);
+app.use("/api/subtasks", authMiddleware, subtaskRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ ok: true });
