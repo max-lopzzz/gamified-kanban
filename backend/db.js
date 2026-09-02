@@ -270,12 +270,18 @@ if (count === 0) {
 }
 
 // Re-derive stored levels from XP whenever the curve changes (idempotent).
-{
+// Best-effort: a read-only DB must not stop the API from booting.
+try {
   const setLevel = db.prepare("UPDATE users SET level = ? WHERE id = ?");
-  for (const u of db.prepare("SELECT id, xp, level FROM users").all()) {
-    const correct = levelFromXp(u.xp);
-    if (correct !== u.level) setLevel.run(correct, u.id);
-  }
+  const fix = db.transaction(() => {
+    for (const u of db.prepare("SELECT id, xp, level FROM users").all()) {
+      const correct = levelFromXp(u.xp);
+      if (correct !== u.level) setLevel.run(correct, u.id);
+    }
+  });
+  fix();
+} catch (err) {
+  console.warn("level recompute skipped:", err.message);
 }
 
 export default db;
