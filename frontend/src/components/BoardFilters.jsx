@@ -80,10 +80,10 @@ export default function BoardFilters({ board, value, onChange }) {
 }
 
 /*
- * Does a task pass the current filters? `currentUserId` is used for the "Me"
- * option (direct user-assignment only; team membership isn't known client-side).
+ * Does a task pass the current filters? A user matches a task when they're a
+ * direct assignee OR a member of a team assigned to it (via board.teams[].member_ids).
  */
-export function taskMatchesFilters(task, filters, currentUserId) {
+export function taskMatchesFilters(task, filters, currentUserId, board) {
   if (
     filters.priorities.length > 0 &&
     !filters.priorities.includes(task.priority)
@@ -92,15 +92,24 @@ export function taskMatchesFilters(task, filters, currentUserId) {
   }
 
   const assignees = task.assignees || [];
+  const teams = board?.teams || [];
+  const teamHasUser = (teamId, userId) =>
+    (teams.find((t) => t.id === teamId)?.member_ids || []).includes(userId);
+  const userIsOnTask = (userId) =>
+    assignees.some(
+      (x) =>
+        (x.type === "user" && x.id === userId) ||
+        (x.type === "team" && teamHasUser(x.id, userId))
+    );
+
   const a = filters.assignee;
   if (a === "unassigned" && assignees.length > 0) return false;
-  if (a === "me" && !assignees.some((x) => x.type === "user" && x.id === currentUserId)) {
-    return false;
-  }
-  if (a.startsWith("u:") && !assignees.some((x) => x.type === "user" && x.id === a.slice(2))) {
-    return false;
-  }
-  if (a.startsWith("t:") && !assignees.some((x) => x.type === "team" && x.id === a.slice(2))) {
+  if (a === "me" && !userIsOnTask(currentUserId)) return false;
+  if (a.startsWith("u:") && !userIsOnTask(a.slice(2))) return false;
+  if (
+    a.startsWith("t:") &&
+    !assignees.some((x) => x.type === "team" && x.id === a.slice(2))
+  ) {
     return false;
   }
 

@@ -197,6 +197,19 @@ router.get("/:boardId", (req, res) => {
     `)
     .all(req.params.boardId);
 
+  const teamMemberRows = db
+    .prepare(`
+      SELECT tm.team_id, tm.user_id
+      FROM team_members tm
+      WHERE tm.team_id IN (SELECT id FROM teams WHERE board_id = ?)
+    `)
+    .all(req.params.boardId);
+  const memberIdsByTeam = {};
+  for (const row of teamMemberRows) {
+    (memberIdsByTeam[row.team_id] ||= []).push(row.user_id);
+  }
+  for (const t of teams) t.member_ids = memberIdsByTeam[t.id] || [];
+
   const sprints = withDerivedActive(
     db
       .prepare(

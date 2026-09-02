@@ -149,7 +149,7 @@ export default function Board({
       if (sprintFilter === "backlog") return t.sprint_id == null;
       return t.sprint_id === sprintFilter;
     })
-    .filter((t) => taskMatchesFilters(t, filters, currentUserId));
+    .filter((t) => taskMatchesFilters(t, filters, currentUserId, board));
 
   return (
     <div className="board-page">
