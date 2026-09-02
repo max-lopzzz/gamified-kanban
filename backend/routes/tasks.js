@@ -36,6 +36,49 @@ function isBoardMember(boardId, userId) {
 }
 
 /*
+ * Validate every foreign reference in a task write against `boardId`.
+ * Returns an error string, or null when everything checks out.
+ *
+ * `INSERT OR IGNORE` does not suppress FK violations, so an unknown id
+ * would otherwise throw mid-write (a bare 500, and for PATCH a half-applied
+ * dependency replacement). Validate up front and 400 instead.
+ */
+function taskRefError({ boardId, dependencyIds, sprintId, teamId, assigneeId }) {
+  for (const dependencyId of Array.isArray(dependencyIds) ? dependencyIds : []) {
+    const dependency = db
+      .prepare("SELECT board_id FROM tasks WHERE id = ?")
+      .get(dependencyId);
+    if (!dependency || dependency.board_id !== boardId) {
+      return "Unknown dependency task for this board";
+    }
+  }
+
+  if (sprintId) {
+    const sprint = db
+      .prepare("SELECT board_id FROM sprints WHERE id = ?")
+      .get(sprintId);
+    if (!sprint || sprint.board_id !== boardId) {
+      return "Unknown sprint for this board";
+    }
+  }
+
+  if (teamId) {
+    const team = db
+      .prepare("SELECT board_id FROM teams WHERE id = ?")
+      .get(teamId);
+    if (!team || team.board_id !== boardId) {
+      return "Unknown team for this board";
+    }
+  }
+
+  if (assigneeId && !isBoardMember(boardId, assigneeId)) {
+    return "Assignee is not a member of this board";
+  }
+
+  return null;
+}
+
+/*
  * Create task
  */
 router.post("/", (req, res) => {
@@ -70,57 +113,18 @@ router.post("/", (req, res) => {
     });
   }
 
-  /*
-   * Validate every foreign reference BEFORE writing anything.
-   *
-   * `INSERT OR IGNORE` does not suppress FK violations, so an unknown
-   * dependency id used to throw *after* the task row had already been
-   * inserted, leaving a partial write behind and returning a bare 500.
-   */
   const dependencyList = Array.isArray(dependencyIds) ? dependencyIds : [];
 
-  for (const dependencyId of dependencyList) {
-    const dependency = db
-      .prepare("SELECT board_id FROM tasks WHERE id = ?")
-      .get(dependencyId);
+  const refError = taskRefError({
+    boardId,
+    dependencyIds: dependencyList,
+    sprintId,
+    teamId: assigneeType === "team" ? teamId : null,
+    assigneeId: assigneeType === "user" ? assigneeId : null,
+  });
 
-    if (!dependency || dependency.board_id !== boardId) {
-      return res.status(400).json({
-        error: "Unknown dependency task for this board",
-      });
-    }
-  }
-
-  if (sprintId) {
-    const sprint = db
-      .prepare("SELECT board_id FROM sprints WHERE id = ?")
-      .get(sprintId);
-
-    if (!sprint || sprint.board_id !== boardId) {
-      return res.status(400).json({
-        error: "Unknown sprint for this board",
-      });
-    }
-  }
-
-  if (assigneeType === "team" && teamId) {
-    const team = db
-      .prepare("SELECT board_id FROM teams WHERE id = ?")
-      .get(teamId);
-
-    if (!team || team.board_id !== boardId) {
-      return res.status(400).json({
-        error: "Unknown team for this board",
-      });
-    }
-  }
-
-  if (assigneeType === "user" && assigneeId) {
-    if (!isBoardMember(boardId, assigneeId)) {
-      return res.status(400).json({
-        error: "Assignee is not a member of this board",
-      });
-    }
+  if (refError) {
+    return res.status(400).json({ error: refError });
   }
 
   const id = `task_${nanoid(10)}`;
@@ -269,6 +273,18 @@ router.patch("/:taskId", (req, res) => {
     });
   }
 
+  const refError = taskRefError({
+    boardId: task.board_id,
+    dependencyIds: req.body.dependencyIds,
+    sprintId: req.body.sprintId,
+    teamId: req.body.teamId,
+    assigneeId: req.body.assigneeId,
+  });
+
+  if (refError) {
+    return res.status(400).json({ error: refError });
+  }
+
   const allowed = {
     title: "title",
     description: "description",
@@ -298,37 +314,41 @@ router.patch("/:taskId", (req, res) => {
     });
   }
 
-  if (updates.length > 0) {
-    values.push(req.params.taskId);
-
-    db.prepare(`
-      UPDATE tasks
-      SET ${updates.join(", ")}
-      WHERE id = ?
-    `).run(...values);
-  }
-
   /*
-   * Replace dependencies if they were supplied.
+   * Apply the column update and the dependency replacement atomically, so a
+   * failure part-way (e.g. an FK violation) rolls back both rather than
+   * leaving the task with its dependencies wiped.
    */
-  if (hasDependencyIds) {
-    db.prepare(`
-      DELETE FROM task_dependencies
-      WHERE task_id = ?
-    `).run(req.params.taskId);
+  const applyUpdate = db.transaction(() => {
+    if (updates.length > 0) {
+      db.prepare(`
+        UPDATE tasks
+        SET ${updates.join(", ")}
+        WHERE id = ?
+      `).run(...values, req.params.taskId);
+    }
 
-    const insert = db.prepare(`
-      INSERT OR IGNORE INTO task_dependencies
-        (task_id, depends_on_task_id)
-      VALUES (?, ?)
-    `);
+    if (hasDependencyIds) {
+      db.prepare(`
+        DELETE FROM task_dependencies
+        WHERE task_id = ?
+      `).run(req.params.taskId);
 
-    for (const dependencyId of req.body.dependencyIds) {
-      if (dependencyId !== req.params.taskId) {
-        insert.run(req.params.taskId, dependencyId);
+      const insert = db.prepare(`
+        INSERT OR IGNORE INTO task_dependencies
+          (task_id, depends_on_task_id)
+        VALUES (?, ?)
+      `);
+
+      for (const dependencyId of req.body.dependencyIds) {
+        if (dependencyId !== req.params.taskId) {
+          insert.run(req.params.taskId, dependencyId);
+        }
       }
     }
-  }
+  });
+
+  applyUpdate();
 
   res.json(
     db.prepare("SELECT * FROM tasks WHERE id = ?")
