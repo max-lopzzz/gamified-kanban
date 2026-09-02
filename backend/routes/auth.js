@@ -7,8 +7,16 @@ import db from "../db.js";
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
+// Emails are stored and compared case-insensitively. Normalize on every
+// write and lookup so "Foo@X.com" and "foo@x.com" can never become two
+// accounts (and so the invitation email check is sound).
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 router.post("/register", (req, res) => {
-  const { email, password, displayName } = req.body;
+  const { password, displayName } = req.body;
+  const email = normalizeEmail(req.body.email);
   if (!email || !password || !displayName) {
     return res.status(400).json({ error: "email, password, and displayName are required" });
   }
@@ -26,7 +34,8 @@ router.post("/register", (req, res) => {
 });
 
 router.post("/login", (req, res) => {
-  const { email, password } = req.body;
+  const { password } = req.body;
+  const email = normalizeEmail(req.body.email);
   const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.status(401).json({ error: "Invalid email or password" });

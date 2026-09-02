@@ -9,7 +9,7 @@ db.pragma("foreign_keys = ON");
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE NOT NULL COLLATE NOCASE,
   password_hash TEXT NOT NULL,
   display_name TEXT NOT NULL,
   xp INTEGER NOT NULL DEFAULT 0,
@@ -168,6 +168,35 @@ addColumnIfMissing(
 addColumnIfMissing("sprints", "goal", "TEXT DEFAULT ''");
 
 addColumnIfMissing("teams", "description", "TEXT DEFAULT ''");
+
+/*
+ * One-time normalization: older rows may have mixed-case emails from before
+ * emails were lowercased on write. Lowercase each, skipping any that would
+ * collide with an existing lowercase row (left as-is for manual cleanup).
+ */
+const mixedCaseUsers = db
+  .prepare("SELECT id, email FROM users WHERE email <> lower(email)")
+  .all();
+
+if (mixedCaseUsers.length > 0) {
+  const collides = db.prepare(
+    "SELECT 1 FROM users WHERE email = lower(?) AND id <> ?"
+  );
+  const lowercaseEmail = db.prepare(
+    "UPDATE users SET email = lower(email) WHERE id = ?"
+  );
+
+  for (const user of mixedCaseUsers) {
+    if (collides.get(user.email, user.id)) {
+      console.warn(
+        `[db] skipping email normalization for user ${user.id}: ` +
+          `lower(${user.email}) already exists`
+      );
+      continue;
+    }
+    lowercaseEmail.run(user.id);
+  }
+}
 
 // Seed default achievements if empty
 const count = db.prepare("SELECT COUNT(*) as c FROM achievements").get().c;

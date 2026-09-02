@@ -920,6 +920,12 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
   box-shadow: var(--shadow-md);
 }
 
+/* @dnd-kit writes an inline transform on every pointermove; easing it makes
+   the dragged card rubber-band behind the cursor. */
+.task-card.dragging {
+  transition: none;
+}
+
 /* .levelup-toast and .achievement-toast animations updated for reduced-motion support */
 .levelup-toast, .achievement-toast {
   animation: toast-in 200ms ease both;
