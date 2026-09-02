@@ -77,5 +77,5 @@ Beyond the core XP/level/streak loop, the app now includes:
 
 ## Where to go from here
 This is a working MVP, not a finished product. Remaining ideas:
-- **Real hosting**: swap SQLite for hosted Postgres if you outgrow a single file, deploy backend (Render/Fly/Railway) and frontend (Vercel/Netlify) separately
+- **Real hosting**: swap SQLite for hosted Postgres if you outgrow a single file, deploy backend (Render/Fly/Railway) and frontend (Vercel/Netlify) separately. The frontend is a client-routed SPA, so the static host must rewrite unknown paths to `index.html` (see `frontend/vercel.json`) or deep links like `/invite/:token` 404. Also point the frontend at the deployed API with `VITE_API_URL`.
 - **Team gamification**: right now XP is per-user; a team/board-level XP pool or "raid boss" mechanic (a shared health bar the whole team chips away at) could be a good differentiator if you want this to feel distinct from Habitica/other gamified to-do apps already on the market
