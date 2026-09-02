@@ -140,6 +140,17 @@ export default function AppShell({ onSignOut }) {
       <div className="board-page" style={{ paddingTop: 0 }}>
         <Leaderboard refreshKey={leaderboardKey} boardId={boardId} />
       </div>
+
+      <footer className="app-footer">
+        Questboard ·{" "}
+        <a
+          href="https://ko-fi.com/maximiliano66848"
+          target="_blank"
+          rel="noreferrer"
+        >
+          ☕ Support on Ko-fi
+        </a>
+      </footer>
     </>
   );
 }
