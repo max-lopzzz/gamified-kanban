@@ -79,7 +79,9 @@ Beyond the core XP/level/streak loop, the app now includes:
 
 **Backend — Render (`render.yaml` blueprint):** Render dashboard → New → Blueprint → pick this repo. It creates a `web` service from `backend/` with a 1 GB persistent disk mounted at `/var/data`, and `DB_PATH` pointed at `/var/data/gamified_kanban.sqlite` so the database survives redeploys. A disk needs a paid instance type (Starter, ~$7/mo) — the free tier's filesystem is ephemeral, which is why accounts kept disappearing. `JWT_SECRET` is auto-generated and kept stable. Once it's live, set `CORS_ORIGIN` in the Render dashboard to your frontend origin.
 
-**Frontend — Vercel:** it's a client-routed SPA, so `frontend/vercel.json` rewrites unknown paths to `index.html` (without it, deep links like `/invite/:token` 404). Set `VITE_API_URL` in the Vercel project's Environment Variables to the Render URL **plus `/api`** — e.g. `https://gamified-kanban-api.onrender.com/api` — then redeploy. Without it the frontend calls `/api` on its own domain, where nothing is listening.
+**Backend — free alternative (Oracle Cloud Always Free VM):** keeps SQLite unchanged, $0 permanently, but you run the box yourself. Full runbook in [`deploy/oracle/SETUP.md`](deploy/oracle/SETUP.md) (systemd unit, Caddy auto-TLS, persistent block volume, backups).
+
+**Frontend — Vercel:** it's a client-routed SPA, so `frontend/vercel.json` rewrites unknown paths to `index.html` (without it, deep links like `/invite/:token` 404). Set `VITE_API_URL` in the Vercel project's Environment Variables to the backend URL **plus `/api`** — e.g. `https://gamified-kanban-api.onrender.com/api` — then redeploy. Without it the frontend calls `/api` on its own domain, where nothing is listening.
 
 ## Where to go from here
 This is a working MVP, not a finished product. Remaining ideas:
