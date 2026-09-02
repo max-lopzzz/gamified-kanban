@@ -169,6 +169,10 @@ addColumnIfMissing("sprints", "goal", "TEXT DEFAULT ''");
 
 addColumnIfMissing("teams", "description", "TEXT DEFAULT ''");
 
+// Who moved the task to "done" (may differ from assignee_id for team /
+// unassigned tasks) — used to credit XP and count completions.
+addColumnIfMissing("tasks", "completed_by", "TEXT");
+
 /*
  * One-time normalization: older rows may have mixed-case emails from before
  * emails were lowercased on write. Lowercase each, skipping any that would

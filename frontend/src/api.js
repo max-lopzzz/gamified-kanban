@@ -61,8 +61,11 @@ export const api = {
 
   me: () => request("/users/me"),
 
-  leaderboard: () =>
-    request("/users/leaderboard"),
+  leaderboard: (boardId) =>
+    request(
+      "/users/leaderboard" +
+        (boardId ? `?boardId=${encodeURIComponent(boardId)}` : "")
+    ),
 
   boards: () =>
     request("/boards"),

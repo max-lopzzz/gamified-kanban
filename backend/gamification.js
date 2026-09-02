@@ -108,8 +108,11 @@ export function awardTaskCompletion(userId, task) {
   const updatedUser = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 
   const totalCompleted = db
-    .prepare("SELECT COUNT(*) as c FROM tasks WHERE assignee_id = ? AND status = 'done'")
-    .get(userId).c;
+    .prepare(
+      `SELECT COUNT(*) as c FROM tasks
+       WHERE (assignee_id = ? OR completed_by = ?) AND status = 'done'`
+    )
+    .get(userId, userId).c;
 
   const unlockedAchievements = checkAchievements(updatedUser, task, totalCompleted);
 

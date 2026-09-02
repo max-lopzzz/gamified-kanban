@@ -212,20 +212,24 @@ router.patch("/:taskId/move", (req, res) => {
   }
 
   const wasAlreadyDone = task.status === "done";
+  const movingToDone = status === "done" && !wasAlreadyDone;
 
   const completedAt =
     status === "done"
       ? new Date().toISOString()
       : task.completed_at;
 
+  const completedBy = movingToDone ? req.userId : task.completed_by;
+
   db.prepare(`
     UPDATE tasks
-    SET status = ?, position = ?, completed_at = ?
+    SET status = ?, position = ?, completed_at = ?, completed_by = ?
     WHERE id = ?
   `).run(
     status,
     position,
     completedAt,
+    completedBy,
     req.params.taskId
   );
 
@@ -235,16 +239,15 @@ router.patch("/:taskId/move", (req, res) => {
 
   let gamification = null;
 
-  if (
-    status === "done" &&
-    !wasAlreadyDone &&
-    updatedTask.assignee_type === "user" &&
-    updatedTask.assignee_id
-  ) {
-    gamification = awardTaskCompletion(
-      updatedTask.assignee_id,
-      updatedTask
-    );
+  if (movingToDone) {
+    // XP goes to the named assignee when there is one; otherwise (team or
+    // "up for grabs" tasks) to whoever moved it to done.
+    const recipientId =
+      updatedTask.assignee_type === "user" && updatedTask.assignee_id
+        ? updatedTask.assignee_id
+        : req.userId;
+
+    gamification = awardTaskCompletion(recipientId, updatedTask);
   }
 
   res.json({
