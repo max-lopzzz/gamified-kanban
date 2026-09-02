@@ -754,6 +754,36 @@ label:not(.dependency-option) {
 /* ---------- SprintBar ---------- */
 .sprint-bar { margin: var(--space-3) 0; }
 
+/* ---------- Board filters ---------- */
+.board-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.filter-chips { display: flex; gap: var(--space-1); }
+.filter-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 3px var(--space-3);
+  font-size: 12px;
+  text-transform: capitalize;
+}
+.filter-chip.selected {
+  border-color: currentColor;
+  background: var(--surface-raised);
+}
+.filter-chip-low.selected { color: var(--priority-low); }
+.filter-chip-normal.selected { color: var(--priority-normal); }
+.filter-chip-high.selected { color: var(--priority-high); }
+.filter-chip-urgent.selected { color: var(--priority-urgent); }
+.filter-assignee { width: auto; min-width: 130px; font-size: 13px; padding: 6px 30px 6px 10px; }
+.filter-search { width: auto; min-width: 200px; flex: 1; max-width: 320px; font-size: 13px; padding: 6px 10px; }
+.filter-clear { padding: 5px var(--space-3); font-size: 12px; }
+
 .sprint-switcher {
   display: flex;
   flex-wrap: wrap;

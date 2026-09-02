@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { DndContext } from "@dnd-kit/core";
 import Column from "./Column.jsx";
 import { api } from "../api";
+import {
+  EMPTY_FILTERS,
+  taskMatchesFilters,
+} from "./BoardFilters.jsx";
 
 const COLUMNS = [
   { status: "backlog", title: "Backlog" },
@@ -15,6 +19,7 @@ export default function Board({
   currentUserId,
   onGamificationEvent,
   sprintFilter = "all",
+  filters = EMPTY_FILTERS,
   onBoardLoaded,
 }) {
   const [board, setBoard] = useState(null);
@@ -138,11 +143,13 @@ export default function Board({
     );
   }
 
-  const visibleTasks = (board.tasks || []).filter((t) => {
-    if (sprintFilter === "all") return true;
-    if (sprintFilter === "backlog") return t.sprint_id == null;
-    return t.sprint_id === sprintFilter;
-  });
+  const visibleTasks = (board.tasks || [])
+    .filter((t) => {
+      if (sprintFilter === "all") return true;
+      if (sprintFilter === "backlog") return t.sprint_id == null;
+      return t.sprint_id === sprintFilter;
+    })
+    .filter((t) => taskMatchesFilters(t, filters, currentUserId));
 
   return (
     <div className="board-page">
