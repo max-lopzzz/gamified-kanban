@@ -1,5 +1,11 @@
-backend/gamified_kanban.sqlite
-
 node_modules/
 dist/
 .DS_Store
+
+# SQLite database + its WAL/SHM sidecars (created at runtime)
+backend/gamified_kanban.sqlite
+backend/gamified_kanban.sqlite-shm
+backend/gamified_kanban.sqlite-wal
+
+# Local Claude Code settings (keep launch.json tracked for the preview tooling)
+.claude/settings.local.json
