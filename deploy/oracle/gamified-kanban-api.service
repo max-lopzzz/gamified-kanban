@@ -1,0 +1,42 @@
+# systemd unit for the backend API.
+# Install: sudo cp deploy/oracle/gamified-kanban-api.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now gamified-kanban-api
+#
+# Assumes:
+#   - repo cloned at /opt/gamified-kanban  (backend at /opt/gamified-kanban/backend)
+#   - Node installed system-wide at /usr/bin/node
+#   - a dedicated unprivileged user `kanban`
+#   - env file at /etc/gamified-kanban/api.env
+#   - the persistent block volume mounted at /mnt/data (holds the SQLite file)
+
+[Unit]
+Description=Gamified Kanban API
+After=network-online.target
+Wants=network-online.target
+# Wait for the data disk before starting so the DB path exists.
+RequiresMountsFor=/mnt/data
+
+[Service]
+Type=simple
+User=kanban
+Group=kanban
+WorkingDirectory=/opt/gamified-kanban/backend
+EnvironmentFile=/etc/gamified-kanban/api.env
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+
+# --- hardening ---
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# Everything is read-only under ProtectSystem=strict except the DB directory.
+ReadWritePaths=/mnt/data
+
+[Install]
+WantedBy=multi-user.target

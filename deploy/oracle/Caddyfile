@@ -1,0 +1,30 @@
+# Reverse proxy + automatic HTTPS for the API.
+# Install: sudo cp deploy/oracle/Caddyfile /etc/caddy/Caddyfile
+#          sudo systemctl reload caddy
+#
+# Replace the site address below with YOUR hostname. Two easy options:
+#   - A real domain you own:            api.example.com
+#   - Free, no purchase (sslip.io):     <public-ip-with-dashes>.sslip.io
+#     e.g. VM IP 203.0.113.45  ->  203-0-113-45.sslip.io
+#
+# Caddy obtains and renews a Let's Encrypt certificate automatically as long
+# as ports 80 and 443 are reachable from the internet (see SETUP.md).
+
+api.example.com {
+	encode zstd gzip
+
+	# App handles CORS itself (CORS_ORIGIN). Don't set CORS headers here.
+	reverse_proxy 127.0.0.1:4000
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	log {
+		output file /var/log/caddy/api-access.log
+		level WARN
+	}
+}
