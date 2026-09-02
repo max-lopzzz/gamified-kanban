@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import { levelFromXp } from "./lib/leveling.js";
 
 const DB_PATH = process.env.DB_PATH || "gamified_kanban.sqlite";
 const db = new Database(DB_PATH);
@@ -265,6 +266,15 @@ if (count === 0) {
 
   for (const [code, name, description, icon] of seed) {
     insert.run(`ach_${code}`, code, name, description, icon);
+  }
+}
+
+// Re-derive stored levels from XP whenever the curve changes (idempotent).
+{
+  const setLevel = db.prepare("UPDATE users SET level = ? WHERE id = ?");
+  for (const u of db.prepare("SELECT id, xp, level FROM users").all()) {
+    const correct = levelFromXp(u.xp);
+    if (correct !== u.level) setLevel.run(correct, u.id);
   }
 }
 
