@@ -10,7 +10,13 @@ import sprintRoutes from "./routes/sprints.js";
 
 const app = express();
 
-app.use(cors());
+// CORS_ORIGIN (comma-separated) locks the API to specific frontend origins.
+// Unset -> allow any origin (fine for local dev).
+const corsOrigin = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim())
+  : true;
+
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
