@@ -137,3 +137,6 @@ persistent block volume, nightly backups) in
   "raid boss" health bar would set it apart from other gamified to-do apps.
 - **Sprint burndown / velocity** history.
 - **Frontend test setup** (Vitest + RTL) — only the backend is covered right now.
+- **Profile pictures** for members (avatars on cards and the leaderboard).
+- **Task tags / labels** for grouping and filtering beyond priority.
+- **Short task IDs** (e.g. `QB-142`) shown on cards and linkable.
