@@ -740,6 +740,16 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
   margin: 0;
 }
 
+.settings-note {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 .settings-layout {
   display: grid;
   grid-template-columns: 180px 1fr;

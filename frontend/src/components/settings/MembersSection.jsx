@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
 
-export default function MembersSection({ boardId }) {
+export default function MembersSection({ boardId, isOwner = false }) {
   const [members, setMembers] = useState([]);
   const [invitations, setInvitations] = useState([]);
   const [email, setEmail] = useState("");
@@ -12,7 +12,8 @@ export default function MembersSection({ boardId }) {
     try {
       setError("");
       setMembers(await api.boardMembers(boardId));
-      setInvitations(await api.boardInvitations(boardId));
+      // Pending invitations are an owner-only endpoint.
+      setInvitations(isOwner ? await api.boardInvitations(boardId) : []);
     } catch (err) {
       setError(err.message);
     }
@@ -20,7 +21,7 @@ export default function MembersSection({ boardId }) {
 
   useEffect(() => {
     load();
-  }, [boardId]);
+  }, [boardId, isOwner]);
 
   async function invite(e) {
     e.preventDefault();
@@ -67,7 +68,7 @@ export default function MembersSection({ boardId }) {
               <small>{m.email}</small>
             </div>
             <span className="member-role">{m.role}</span>
-            {m.role !== "owner" && (
+            {isOwner && m.role !== "owner" && (
               <button
                 className="btn-danger"
                 type="button"
@@ -80,19 +81,21 @@ export default function MembersSection({ boardId }) {
         ))}
       </div>
 
-      <form onSubmit={invite} className="settings-form">
-        <input
-          type="email"
-          placeholder="person@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <button className="btn-primary" type="submit">
-          Create invitation
-        </button>
-      </form>
+      {isOwner && (
+        <form onSubmit={invite} className="settings-form">
+          <input
+            type="email"
+            placeholder="person@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <button className="btn-primary" type="submit">
+            Create invitation
+          </button>
+        </form>
+      )}
 
-      {inviteUrl && (
+      {isOwner && inviteUrl && (
         <div className="invite-url-row">
           <input type="text" readOnly value={inviteUrl} />
           <button
@@ -105,7 +108,7 @@ export default function MembersSection({ boardId }) {
         </div>
       )}
 
-      {invitations.length > 0 && (
+      {isOwner && invitations.length > 0 && (
         <>
           <h4>Pending invitations</h4>
           <div className="settings-list">

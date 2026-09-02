@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import TaskCard from "./TaskCard.jsx";
+
+function defaultSprintFor(sprintFilter) {
+  return sprintFilter && sprintFilter !== "all" && sprintFilter !== "backlog"
+    ? sprintFilter
+    : "";
+}
 
 export default function Column({
   status,
@@ -34,15 +40,19 @@ export default function Column({
     useState("");
 
   const [sprintId, setSprintId] = useState(
-    sprintFilter && sprintFilter !== "all" && sprintFilter !== "backlog"
-      ? sprintFilter
-      : ""
+    defaultSprintFor(sprintFilter)
   );
+
+  // Keep the new-task sprint in step with the sprint being viewed in the
+  // SprintBar; switching sprints there should retarget the form.
+  useEffect(() => {
+    setSprintId(defaultSprintFor(sprintFilter));
+  }, [sprintFilter]);
 
   const [dependencyIds, setDependencyIds] =
     useState([]);
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
 
     if (!title_.trim()) return;
@@ -57,17 +67,22 @@ export default function Column({
       return;
     }
 
-    onCreateTask({
-      title: title_.trim(),
-      description,
-      priority,
-      storyPoints: Number(points),
-      assigneeType,
-      assigneeId: assigneeType === "user" ? assigneeId : null,
-      teamId: assigneeType === "team" ? teamId : null,
-      sprintId: sprintId || null,
-      dependencyIds,
-    });
+    try {
+      await onCreateTask({
+        title: title_.trim(),
+        description,
+        priority,
+        storyPoints: Number(points),
+        assigneeType,
+        assigneeId: assigneeType === "user" ? assigneeId : null,
+        teamId: assigneeType === "team" ? teamId : null,
+        sprintId: sprintId || null,
+        dependencyIds,
+      });
+    } catch {
+      // Board surfaces the error; keep the form open with its input intact.
+      return;
+    }
 
     setTitle("");
     setDescription("");
@@ -76,7 +91,7 @@ export default function Column({
     setAssigneeType("unassigned");
     setAssigneeId("");
     setTeamId("");
-    setSprintId("");
+    setSprintId(defaultSprintFor(sprintFilter));
     setDependencyIds([]);
     setShowForm(false);
   }

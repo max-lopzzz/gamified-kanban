@@ -15,16 +15,19 @@ const TABS = [
   { id: "members", label: "Members" },
   { id: "teams", label: "Teams" },
   { id: "sprints", label: "Sprints" },
-  { id: "danger", label: "Danger zone" },
+  { id: "danger", label: "Danger zone", ownerOnly: true },
 ];
 
 export default function BoardSettingsPage() {
   const { boardId } = useParams();
   const navigate = useNavigate();
-  const { boards, reloadBoards } = useOutletContext();
+  const { boards, reloadBoards, user } = useOutletContext();
   const [tab, setTab] = useState("members");
 
   const board = (boards || []).find((b) => b.id === boardId);
+  const isOwner = !!(board && user && board.owner_id === user.id);
+  const tabs = TABS.filter((t) => !t.ownerOnly || isOwner);
+  const activeTab = tabs.some((t) => t.id === tab) ? tab : "members";
 
   async function deleteBoard() {
     const typed = window.prompt(
@@ -47,13 +50,20 @@ export default function BoardSettingsPage() {
         <h2>{board ? board.name : "Board"} · settings</h2>
       </div>
 
+      {!isOwner && (
+        <p className="settings-note">
+          You’re a member of this board. Only the owner can change members,
+          teams, and sprints.
+        </p>
+      )}
+
       <div className="settings-layout">
         <nav className="settings-nav">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button
               key={t.id}
               type="button"
-              className={"settings-nav-item" + (tab === t.id ? " active" : "")}
+              className={"settings-nav-item" + (activeTab === t.id ? " active" : "")}
               onClick={() => setTab(t.id)}
             >
               {t.label}
@@ -62,22 +72,22 @@ export default function BoardSettingsPage() {
         </nav>
 
         <div className="settings-content">
-          {tab === "members" && (
+          {activeTab === "members" && (
             <SettingsSection title="Members & invitations">
-              <MembersSection boardId={boardId} />
+              <MembersSection boardId={boardId} isOwner={isOwner} />
             </SettingsSection>
           )}
-          {tab === "teams" && (
+          {activeTab === "teams" && (
             <SettingsSection title="Teams">
-              <TeamsSection boardId={boardId} />
+              <TeamsSection boardId={boardId} isOwner={isOwner} />
             </SettingsSection>
           )}
-          {tab === "sprints" && (
+          {activeTab === "sprints" && (
             <SettingsSection title="Sprints">
-              <SprintsSection boardId={boardId} />
+              <SprintsSection boardId={boardId} isOwner={isOwner} />
             </SettingsSection>
           )}
-          {tab === "danger" && (
+          {activeTab === "danger" && isOwner && (
             <SettingsSection title="Danger zone">
               <p>Deleting a board removes all of its tasks, teams, and sprints.</p>
               <button className="btn-danger" type="button" onClick={deleteBoard}>

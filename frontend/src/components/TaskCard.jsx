@@ -58,19 +58,24 @@ export default function TaskCard({
       (PRIORITY_MULT[task.priority] ?? 1)
   );
 
-  function save(e) {
+  async function save(e) {
     e.preventDefault();
 
     if (!title.trim()) return;
 
-    onUpdate(task.id, {
-      title: title.trim(),
-      description,
-      priority,
-      storyPoints: Number(points),
-      dependencyIds,
-      sprintId: sprintId || null,
-    });
+    try {
+      await onUpdate(task.id, {
+        title: title.trim(),
+        description,
+        priority,
+        storyPoints: Number(points),
+        dependencyIds,
+        sprintId: sprintId || null,
+      });
+    } catch {
+      // Board surfaces the error; keep the editor open so the edit isn't lost.
+      return;
+    }
 
     setEditing(false);
   }
