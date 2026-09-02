@@ -226,3 +226,69 @@ test("POST /api/tasks rejects a dependency that lives on another board", async (
 
   assert.equal(res.status, 400);
 });
+
+test("PATCH /api/tasks/:id rejects a cross-board sprint/team/dependency ref", async () => {
+  const a = await boardCtx("patch-ref-a");
+  const other = await boardCtx("patch-ref-b");
+
+  const mine = (
+    await request(app)
+      .post("/api/tasks")
+      .set(authHeader(a.token))
+      .send({ boardId: a.board.id, title: "mine" })
+  ).body;
+  const foreignSprint = (
+    await request(app)
+      .post("/api/sprints")
+      .set(authHeader(other.token))
+      .send({ boardId: other.board.id, name: "theirs" })
+  ).body;
+  const foreignTask = (
+    await request(app)
+      .post("/api/tasks")
+      .set(authHeader(other.token))
+      .send({ boardId: other.board.id, title: "theirs" })
+  ).body;
+
+  const badSprint = await request(app)
+    .patch(`/api/tasks/${mine.id}`)
+    .set(authHeader(a.token))
+    .send({ sprintId: foreignSprint.id });
+  assert.equal(badSprint.status, 400);
+
+  const badDep = await request(app)
+    .patch(`/api/tasks/${mine.id}`)
+    .set(authHeader(a.token))
+    .send({ dependencyIds: [foreignTask.id] });
+  assert.equal(badDep.status, 400);
+});
+
+test("PATCH /api/tasks/:id keeps existing dependencies when a new ref is bad", async () => {
+  const { token, board } = await boardCtx("patch-atomic");
+  const dep = (
+    await request(app)
+      .post("/api/tasks")
+      .set(authHeader(token))
+      .send({ boardId: board.id, title: "dep" })
+  ).body;
+  const target = (
+    await request(app)
+      .post("/api/tasks")
+      .set(authHeader(token))
+      .send({ boardId: board.id, title: "target", dependencyIds: [dep.id] })
+  ).body;
+
+  // A PATCH whose dependencyIds contain a bogus id must 400 and NOT wipe
+  // the task's current dependency.
+  const res = await request(app)
+    .patch(`/api/tasks/${target.id}`)
+    .set(authHeader(token))
+    .send({ dependencyIds: ["task_does_not_exist"] });
+  assert.equal(res.status, 400);
+
+  const fetched = (
+    await request(app).get(`/api/boards/${board.id}`).set(authHeader(token))
+  ).body;
+  const stillThere = fetched.tasks.find((t) => t.id === target.id);
+  assert.deepEqual(stillThere.dependencies.map((d) => d.id), [dep.id]);
+});

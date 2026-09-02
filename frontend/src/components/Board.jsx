@@ -50,17 +50,23 @@ export default function Board({
    * a person, a team, or nobody.
    */
   async function handleCreateTask(payload) {
-    await api.createTask({
-      boardId,
-      ...payload,
-    });
-
-    await refresh();
+    try {
+      await api.createTask({ boardId, ...payload });
+      await refresh();
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
   }
 
   async function handleUpdateTask(taskId, payload) {
-    await api.updateTask(taskId, payload);
-    await refresh();
+    try {
+      await api.updateTask(taskId, payload);
+      await refresh();
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
   }
 
   async function handleDeleteTask(task) {

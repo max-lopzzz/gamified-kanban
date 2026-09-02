@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
 
-export default function SprintsSection({ boardId }) {
+export default function SprintsSection({ boardId, isOwner = false }) {
   const [sprints, setSprints] = useState([]);
   const [name, setName] = useState("");
   const [startsAt, setStartsAt] = useState("");
@@ -127,40 +127,44 @@ export default function SprintsSection({ boardId }) {
                 </strong>
               </div>
 
-              <div className="sprint-actions">
-                {!sprint.is_active && (
-                  <button
-                    className="btn-primary"
-                    type="button"
-                    onClick={() => setActive(sprint)}
-                  >
-                    Start
-                  </button>
-                )}
+              {isOwner && (
+                <div className="sprint-actions">
+                  {!sprint.is_active && (
+                    <button
+                      className="btn-primary"
+                      type="button"
+                      onClick={() => setActive(sprint)}
+                    >
+                      Start
+                    </button>
+                  )}
 
-                {sprint.is_active && (
-                  <button
-                    className="btn-ghost"
-                    type="button"
-                    onClick={() => finishSprint(sprint)}
-                  >
-                    Finish
-                  </button>
-                )}
+                  {sprint.is_active && (
+                    <button
+                      className="btn-ghost"
+                      type="button"
+                      onClick={() => finishSprint(sprint)}
+                    >
+                      Finish
+                    </button>
+                  )}
 
-                <button
-                  className="btn-danger"
-                  type="button"
-                  onClick={() => deleteSprint(sprint)}
-                >
-                  Delete
-                </button>
-              </div>
+                  <button
+                    className="btn-danger"
+                    type="button"
+                    onClick={() => deleteSprint(sprint)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
 
+      {isOwner && (
+        <>
       <hr />
 
       <h3>Create sprint</h3>
@@ -200,6 +204,8 @@ export default function SprintsSection({ boardId }) {
           + Create sprint
         </button>
       </form>
+        </>
+      )}
     </div>
   );
 }

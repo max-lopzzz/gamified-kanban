@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
 
-export default function TeamsSection({ boardId }) {
+export default function TeamsSection({ boardId, isOwner = false }) {
   const [teams, setTeams] = useState([]);
   const [teamMembers, setTeamMembers] = useState({});
   const [members, setMembers] = useState([]);
@@ -111,13 +111,15 @@ export default function TeamsSection({ boardId }) {
                     {team.description && <p>{team.description}</p>}
                   </div>
 
-                  <button
-                    className="btn-danger"
-                    type="button"
-                    onClick={() => deleteTeam(team)}
-                  >
-                    Delete
-                  </button>
+                  {isOwner && (
+                    <button
+                      className="btn-danger"
+                      type="button"
+                      onClick={() => deleteTeam(team)}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
 
                 <h5>Members</h5>
@@ -126,65 +128,73 @@ export default function TeamsSection({ boardId }) {
                   <div key={member.id} className="team-member">
                     <span>{member.display_name}</span>
 
-                    <button
-                      className="btn-ghost"
-                      type="button"
-                      onClick={() => removeMember(team.id, member.id)}
-                    >
-                      Remove
-                    </button>
+                    {isOwner && (
+                      <button
+                        className="btn-ghost"
+                        type="button"
+                        onClick={() => removeMember(team.id, member.id)}
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
                 ))}
 
-                <select
-                  defaultValue=""
-                  onChange={(e) => {
-                    addMember(team.id, e.target.value);
-                    e.target.value = "";
-                  }}
-                >
-                  <option value="">Add board member...</option>
+                {isOwner && (
+                  <select
+                    defaultValue=""
+                    onChange={(e) => {
+                      addMember(team.id, e.target.value);
+                      e.target.value = "";
+                    }}
+                  >
+                    <option value="">Add board member...</option>
 
-                  {members
-                    .filter(
-                      (member) =>
-                        !currentMembers.some((m) => m.id === member.id)
-                    )
-                    .map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.display_name}
-                      </option>
-                    ))}
-                </select>
+                    {members
+                      .filter(
+                        (member) =>
+                          !currentMembers.some((m) => m.id === member.id)
+                      )
+                      .map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.display_name}
+                        </option>
+                      ))}
+                  </select>
+                )}
               </div>
             );
           })}
         </div>
       )}
 
-      <hr />
+      {isOwner && (
+        <>
+          <hr />
 
-      <h3>Create team</h3>
+          <h3>Create team</h3>
 
-      <form onSubmit={createTeam} className="settings-form">
-        <input
-          type="text"
-          placeholder="Team name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+          <form onSubmit={createTeam} className="settings-form">
+            <input
+              type="text"
+              placeholder="Team name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
 
-        <textarea
-          placeholder="Description (optional)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-        />
+            <textarea
+              placeholder="Description (optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+            />
 
-        <button className="btn-primary" type="submit">
-          + Create team
-        </button>
-      </form>
+            <button className="btn-primary" type="submit">
+              + Create team
+            </button>
+          </form>
+        </>
+      )}
     </div>
   );
 }
