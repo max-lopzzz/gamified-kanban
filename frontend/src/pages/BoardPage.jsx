@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useOutletContext } from "react-router-dom";
 import Board from "../components/Board.jsx";
 import SprintBar from "../components/SprintBar.jsx";
+import BoardFilters, { EMPTY_FILTERS } from "../components/BoardFilters.jsx";
 
 export default function BoardPage() {
   const { boardId } = useParams();
@@ -9,11 +10,13 @@ export default function BoardPage() {
 
   const [board, setBoard] = useState(null);
   const [sprintFilter, setSprintFilter] = useState("all");
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const autoSelected = useRef(false);
 
   useEffect(() => {
     setBoard(null);
     setSprintFilter("all");
+    setFilters(EMPTY_FILTERS);
     autoSelected.current = false;
   }, [boardId]);
 
@@ -37,6 +40,7 @@ export default function BoardPage() {
             value={sprintFilter}
             onChange={setSprintFilter}
           />
+          <BoardFilters board={board} value={filters} onChange={setFilters} />
         </div>
       )}
       <Board
@@ -45,6 +49,7 @@ export default function BoardPage() {
         currentUserId={user?.id}
         onGamificationEvent={onGamificationEvent}
         sprintFilter={sprintFilter}
+        filters={filters}
         onBoardLoaded={handleBoardLoaded}
       />
     </>

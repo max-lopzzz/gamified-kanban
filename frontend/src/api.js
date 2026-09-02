@@ -210,6 +210,24 @@ export const api = {
     request(`/sprints/${sprintId}`, {
       method: "DELETE",
     }),
+
+  // Subtasks
+  createSubtask: (taskId, title) =>
+    request("/subtasks", {
+      method: "POST",
+      body: JSON.stringify({ taskId, title }),
+    }),
+
+  updateSubtask: (id, patch) =>
+    request(`/subtasks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
+
+  deleteSubtask: (id) =>
+    request(`/subtasks/${id}`, {
+      method: "DELETE",
+    }),
 };
 
 export function setToken(token) {

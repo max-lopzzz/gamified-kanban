@@ -117,6 +117,27 @@ CREATE TABLE IF NOT EXISTS task_dependencies (
     ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS task_assignees (
+  task_id TEXT NOT NULL,
+  assignee_type TEXT NOT NULL,        -- 'user' | 'team'
+  assignee_id TEXT NOT NULL,          -- user id or team id
+
+  PRIMARY KEY (task_id, assignee_type, assignee_id),
+
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS subtasks (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  done INTEGER NOT NULL DEFAULT 0,
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS achievements (
   id TEXT PRIMARY KEY,
   code TEXT UNIQUE NOT NULL,
@@ -172,6 +193,30 @@ addColumnIfMissing("teams", "description", "TEXT DEFAULT ''");
 // Who moved the task to "done" (may differ from assignee_id for team /
 // unassigned tasks) — used to credit XP and count completions.
 addColumnIfMissing("tasks", "completed_by", "TEXT");
+
+/*
+ * Backfill task_assignees from the old single-assignee columns, once.
+ * (Tasks can now have several people / teams assigned.)
+ */
+if (db.prepare("SELECT COUNT(*) AS c FROM task_assignees").get().c === 0) {
+  const legacy = db
+    .prepare(
+      `SELECT id, assignee_type, assignee_id, team_id FROM tasks
+       WHERE assignee_type IN ('user', 'team')`
+    )
+    .all();
+  const insert = db.prepare(
+    `INSERT OR IGNORE INTO task_assignees (task_id, assignee_type, assignee_id)
+     VALUES (?, ?, ?)`
+  );
+  for (const t of legacy) {
+    if (t.assignee_type === "user" && t.assignee_id) {
+      insert.run(t.id, "user", t.assignee_id);
+    } else if (t.assignee_type === "team" && t.team_id) {
+      insert.run(t.id, "team", t.team_id);
+    }
+  }
+}
 
 /*
  * One-time normalization: older rows may have mixed-case emails from before
