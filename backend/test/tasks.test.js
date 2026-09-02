@@ -431,3 +431,58 @@ test("completing an 'up for grabs' task awards the completer", async () => {
   assert.equal(move.status, 200);
   assert.ok(move.body.gamification && move.body.gamification.xpGained > 0);
 });
+
+test("a task can be created with subtasks in one request", async () => {
+  const { token, board } = await boardCtx("create-subs");
+
+  const task = (
+    await request(app)
+      .post("/api/tasks")
+      .set(authHeader(token))
+      .send({
+        boardId: board.id,
+        title: "with checklist",
+        subtasks: ["design", "  build  ", "", "ship"],
+      })
+  ).body;
+
+  assert.deepEqual(
+    task.subtasks.map((s) => s.title),
+    ["design", "build", "ship"]
+  );
+  assert.ok(task.subtasks.every((s) => s.done === 0));
+
+  const fetched = (
+    await request(app).get(`/api/boards/${board.id}`).set(authHeader(token))
+  ).body.tasks.find((t) => t.id === task.id);
+  assert.equal(fetched.subtasks.length, 3);
+});
+
+test("a done task can be added as a dependency", async () => {
+  const { token, board } = await boardCtx("dep-done");
+  const doneTask = (
+    await request(app)
+      .post("/api/tasks")
+      .set(authHeader(token))
+      .send({ boardId: board.id, title: "already done" })
+  ).body;
+  await request(app)
+    .patch(`/api/tasks/${doneTask.id}/move`)
+    .set(authHeader(token))
+    .send({ status: "done", position: 0 });
+
+  const blocked = (
+    await request(app)
+      .post("/api/tasks")
+      .set(authHeader(token))
+      .send({
+        boardId: board.id,
+        title: "blocked",
+        dependencyIds: [doneTask.id],
+      })
+  ).body;
+  assert.deepEqual(
+    blocked.dependencies.map((d) => d.id),
+    [doneTask.id]
+  );
+});
