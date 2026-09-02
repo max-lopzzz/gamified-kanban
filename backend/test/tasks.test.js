@@ -292,3 +292,63 @@ test("PATCH /api/tasks/:id keeps existing dependencies when a new ref is bad", a
   const stillThere = fetched.tasks.find((t) => t.id === target.id);
   assert.deepEqual(stillThere.dependencies.map((d) => d.id), [dep.id]);
 });
+
+test("completing a team-assigned task awards XP to whoever moved it to done", async () => {
+  const { token, user, board } = await boardCtx("team-xp");
+  const team = (
+    await request(app)
+      .post("/api/teams")
+      .set(authHeader(token))
+      .send({ boardId: board.id, name: "Crew" })
+  ).body;
+
+  const task = (
+    await request(app)
+      .post("/api/tasks")
+      .set(authHeader(token))
+      .send({
+        boardId: board.id,
+        title: "team job",
+        assigneeType: "team",
+        teamId: team.id,
+        storyPoints: 3,
+      })
+  ).body;
+
+  const before = (
+    await request(app).get("/api/users/me").set(authHeader(token))
+  ).body.xp;
+
+  const move = await request(app)
+    .patch(`/api/tasks/${task.id}/move`)
+    .set(authHeader(token))
+    .send({ status: "done", position: 0 });
+
+  assert.equal(move.status, 200);
+  assert.ok(move.body.gamification, "expected a gamification payload");
+  assert.ok(move.body.gamification.xpGained > 0);
+
+  const after = (
+    await request(app).get("/api/users/me").set(authHeader(token))
+  ).body.xp;
+  assert.ok(after > before, `xp should rise (${before} -> ${after})`);
+  assert.equal(move.body.task.completed_by, user.id);
+});
+
+test("completing an 'up for grabs' task awards the completer", async () => {
+  const { token, board } = await boardCtx("grab-xp");
+  const task = (
+    await request(app)
+      .post("/api/tasks")
+      .set(authHeader(token))
+      .send({ boardId: board.id, title: "free", assigneeType: "unassigned", storyPoints: 2 })
+  ).body;
+
+  const move = await request(app)
+    .patch(`/api/tasks/${task.id}/move`)
+    .set(authHeader(token))
+    .send({ status: "done", position: 0 });
+
+  assert.equal(move.status, 200);
+  assert.ok(move.body.gamification && move.body.gamification.xpGained > 0);
+});

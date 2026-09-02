@@ -138,7 +138,7 @@ export default function AppShell({ onSignOut }) {
       />
 
       <div className="board-page" style={{ paddingTop: 0 }}>
-        <Leaderboard refreshKey={leaderboardKey} />
+        <Leaderboard refreshKey={leaderboardKey} boardId={boardId} />
       </div>
     </>
   );

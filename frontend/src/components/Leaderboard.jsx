@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 
-export default function Leaderboard({ refreshKey }) {
+export default function Leaderboard({ refreshKey, boardId }) {
   const [rows, setRows] = useState([]);
 
   useEffect(() => {
-    api.leaderboard().then(setRows).catch(() => {});
-  }, [refreshKey]);
+    api.leaderboard(boardId).then(setRows).catch(() => {});
+  }, [refreshKey, boardId]);
 
   if (rows.length === 0) return null;
 
