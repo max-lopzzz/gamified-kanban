@@ -75,7 +75,13 @@ Beyond the core XP/level/streak loop, the app now includes:
 - **Theme toggle**: light / dark / system theme with the choice persisted across reloads
 - **Full task editing**: edit and delete tasks from the board, including sprint reassignment
 
+## Deploying
+
+**Backend — Render (`render.yaml` blueprint):** Render dashboard → New → Blueprint → pick this repo. It creates a `web` service from `backend/` with a 1 GB persistent disk mounted at `/var/data`, and `DB_PATH` pointed at `/var/data/gamified_kanban.sqlite` so the database survives redeploys. A disk needs a paid instance type (Starter, ~$7/mo) — the free tier's filesystem is ephemeral, which is why accounts kept disappearing. `JWT_SECRET` is auto-generated and kept stable. Once it's live, set `CORS_ORIGIN` in the Render dashboard to your frontend origin.
+
+**Frontend — Vercel:** it's a client-routed SPA, so `frontend/vercel.json` rewrites unknown paths to `index.html` (without it, deep links like `/invite/:token` 404). Set `VITE_API_URL` in the Vercel project's Environment Variables to the Render URL **plus `/api`** — e.g. `https://gamified-kanban-api.onrender.com/api` — then redeploy. Without it the frontend calls `/api` on its own domain, where nothing is listening.
+
 ## Where to go from here
 This is a working MVP, not a finished product. Remaining ideas:
-- **Real hosting**: swap SQLite for hosted Postgres if you outgrow a single file, deploy backend (Render/Fly/Railway) and frontend (Vercel/Netlify) separately. The frontend is a client-routed SPA, so the static host must rewrite unknown paths to `index.html` (see `frontend/vercel.json`) or deep links like `/invite/:token` 404. Also point the frontend at the deployed API with `VITE_API_URL`.
+- **Hosted Postgres**: swap SQLite for a managed Postgres if a single file on one disk stops being enough (multiple backend instances, backups, point-in-time recovery).
 - **Team gamification**: right now XP is per-user; a team/board-level XP pool or "raid boss" mechanic (a shared health bar the whole team chips away at) could be a good differentiator if you want this to feel distinct from Habitica/other gamified to-do apps already on the market

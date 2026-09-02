@@ -1,0 +1,45 @@
+# Render Blueprint for the backend API.
+#
+# Deploy: Render dashboard -> New -> Blueprint -> select this repo.
+# Render reads this file, creates the service, and mounts the persistent disk.
+#
+# A persistent disk requires a paid instance type (Starter, ~$7/mo). Render's
+# free web-service tier has an ephemeral filesystem and cannot mount a disk,
+# which is why the SQLite database kept resetting on every redeploy.
+#
+# After the service is live:
+#   1. Copy its URL, e.g. https://gamified-kanban-api.onrender.com
+#   2. In Vercel -> project -> Settings -> Environment Variables, set
+#        VITE_API_URL = https://gamified-kanban-api.onrender.com/api
+#      and redeploy the frontend.
+#   3. Back in Render, set CORS_ORIGIN = https://gamified-kanban.vercel.app
+#      (comma-separate if you have more than one frontend origin).
+
+services:
+  - type: web
+    name: gamified-kanban-api
+    runtime: node
+    rootDir: backend
+    plan: starter
+    region: oregon
+    branch: main
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # Signs the auth JWTs. Render generates a strong value once and keeps it
+      # stable across deploys (so existing sessions survive a redeploy).
+      - key: JWT_SECRET
+        generateValue: true
+      # SQLite file lives on the mounted disk below so it persists.
+      - key: DB_PATH
+        value: /var/data/gamified_kanban.sqlite
+      # Set this in the dashboard to the frontend origin(s) to lock down CORS.
+      # Leave unset to allow any origin.
+      - key: CORS_ORIGIN
+        sync: false
+    disk:
+      name: sqlite-data
+      mountPath: /var/data
+      sizeGB: 1
