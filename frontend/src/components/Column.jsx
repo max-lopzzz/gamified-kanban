@@ -1,13 +1,22 @@
 import { useEffect, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import TaskCard from "./TaskCard.jsx";
-import AssigneePicker from "./AssigneePicker.jsx";
+import TokenMultiSelect from "./TokenMultiSelect.jsx";
+import ChecklistEditor from "./ChecklistEditor.jsx";
+import {
+  assigneeOptions,
+  encodeAssignees,
+  decodeAssignees,
+  dependencyOptions,
+} from "../lib/task-form.js";
 
 function defaultSprintFor(sprintFilter) {
   return sprintFilter && sprintFilter !== "all" && sprintFilter !== "backlog"
     ? sprintFilter
     : "";
 }
+
+let draftCounter = 0;
 
 export default function Column({
   status,
@@ -21,68 +30,52 @@ export default function Column({
   onDeleteTask,
   onTaskMutated,
 }) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: status,
-  });
+  const { setNodeRef, isOver } = useDroppable({ id: status });
 
   const [showForm, setShowForm] = useState(false);
-
   const [title_, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("normal");
   const [points, setPoints] = useState(2);
-
   const [assignees, setAssignees] = useState([]);
+  const [dependencyIds, setDependencyIds] = useState([]);
+  const [checklist, setChecklist] = useState([]); // { id, title, done:false }
+  const [sprintId, setSprintId] = useState(defaultSprintFor(sprintFilter));
 
-  const [sprintId, setSprintId] = useState(
-    defaultSprintFor(sprintFilter)
-  );
-
-  // Keep the new-task sprint in step with the sprint being viewed in the
-  // SprintBar; switching sprints there should retarget the form.
   useEffect(() => {
     setSprintId(defaultSprintFor(sprintFilter));
   }, [sprintFilter]);
 
-  const [dependencyIds, setDependencyIds] =
-    useState([]);
+  function reset() {
+    setTitle("");
+    setDescription("");
+    setPriority("normal");
+    setPoints(2);
+    setAssignees([]);
+    setDependencyIds([]);
+    setChecklist([]);
+    setSprintId(defaultSprintFor(sprintFilter));
+    setShowForm(false);
+  }
 
   async function submit(e) {
     e.preventDefault();
-
     if (!title_.trim()) return;
-
     try {
       await onCreateTask({
         title: title_.trim(),
         description,
         priority,
         storyPoints: Number(points),
-        assignees,
+        assignees: decodeAssignees(assignees),
         sprintId: sprintId || null,
         dependencyIds,
+        subtasks: checklist.map((c) => c.title),
       });
     } catch {
-      // Board surfaces the error; keep the form open with its input intact.
-      return;
+      return; // Board shows the error; keep the form open
     }
-
-    setTitle("");
-    setDescription("");
-    setPriority("normal");
-    setPoints(2);
-    setAssignees([]);
-    setSprintId(defaultSprintFor(sprintFilter));
-    setDependencyIds([]);
-    setShowForm(false);
-  }
-
-  function toggleDependency(id) {
-    setDependencyIds((current) =>
-      current.includes(id)
-        ? current.filter((x) => x !== id)
-        : [...current, id]
-    );
+    reset();
   }
 
   return (
@@ -94,10 +87,7 @@ export default function Column({
 
       <div
         ref={setNodeRef}
-        className={
-          "column-body" +
-          (isOver ? " drag-over" : "")
-        }
+        className={"column-body" + (isOver ? " drag-over" : "")}
       >
         {tasks.map((task) => (
           <TaskCard
@@ -116,129 +106,108 @@ export default function Column({
         <div className="new-task-form">
           {showForm ? (
             <form onSubmit={submit}>
-
               <input
                 type="text"
                 placeholder="Task title"
                 value={title_}
-                onChange={(e) =>
-                  setTitle(e.target.value)
-                }
+                onChange={(e) => setTitle(e.target.value)}
                 autoFocus
               />
 
               <textarea
                 placeholder="Description"
                 value={description}
-                onChange={(e) =>
-                  setDescription(e.target.value)
-                }
+                onChange={(e) => setDescription(e.target.value)}
                 rows={3}
               />
 
               <div className="new-task-row">
                 <select
                   value={priority}
-                  onChange={(e) =>
-                    setPriority(e.target.value)
-                  }
+                  onChange={(e) => setPriority(e.target.value)}
                 >
                   <option value="low">Low</option>
                   <option value="normal">Normal</option>
                   <option value="high">High</option>
                   <option value="urgent">Urgent</option>
                 </select>
-
                 <input
                   type="number"
                   min={1}
                   max={1000}
                   value={points}
-                  onChange={(e) =>
-                    setPoints(e.target.value)
-                  }
+                  onChange={(e) => setPoints(e.target.value)}
                   title="Story points"
                 />
               </div>
 
               <label>Assignees</label>
-              <AssigneePicker
-                board={board}
+              <TokenMultiSelect
+                options={assigneeOptions(board)}
                 value={assignees}
                 onChange={setAssignees}
+                placeholder="Add people or teams…"
+                emptyText="No members or teams yet"
               />
 
-              <label>
-                Sprint
-              </label>
-
+              <label>Sprint</label>
               <select
                 value={sprintId}
-                onChange={(e) =>
-                  setSprintId(e.target.value)
-                }
+                onChange={(e) => setSprintId(e.target.value)}
               >
-                <option value="">
-                  No sprint
-                </option>
-
+                <option value="">No sprint</option>
                 {(board.sprints || []).map((sprint) => (
-                  <option
-                    key={sprint.id}
-                    value={sprint.id}
-                  >
+                  <option key={sprint.id} value={sprint.id}>
                     {sprint.name}
                   </option>
                 ))}
               </select>
 
-              <label>
-                Dependencies
-              </label>
+              <label>Dependencies</label>
+              <TokenMultiSelect
+                options={dependencyOptions(board.tasks, null)}
+                value={dependencyIds}
+                onChange={setDependencyIds}
+                placeholder="Blocked by…"
+                emptyText="No other tasks yet"
+              />
 
-              <div className="dependency-list">
-                {(board.tasks || [])
-                  .filter((task) => task.status !== "done")
-                  .map((task) => (
-                    <label
-                      key={task.id}
-                      className="dependency-option"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={dependencyIds.includes(task.id)}
-                        onChange={() =>
-                          toggleDependency(task.id)
-                        }
-                      />
-
-                      {task.title}
-                    </label>
-                  ))}
-              </div>
+              <label>Checklist</label>
+              <ChecklistEditor
+                items={checklist}
+                onAdd={(t) =>
+                  setChecklist((c) => [
+                    ...c,
+                    { id: `draft_${++draftCounter}`, title: t, done: false },
+                  ])
+                }
+                onToggle={(item) =>
+                  setChecklist((c) =>
+                    c.map((x) =>
+                      x.id === item.id ? { ...x, done: !x.done } : x
+                    )
+                  )
+                }
+                onRemove={(item) =>
+                  setChecklist((c) => c.filter((x) => x.id !== item.id))
+                }
+              />
 
               <div className="new-task-row">
-                <button
-                  className="btn-primary"
-                  type="submit"
-                >
+                <button className="btn-primary" type="submit">
                   Add
                 </button>
-
                 <button
                   className="btn-ghost"
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={reset}
                 >
                   Cancel
                 </button>
               </div>
             </form>
           ) : (
-            <button
-              className="btn-ghost"
-              onClick={() => setShowForm(true)}
-            >
+            <button className="btn-ghost" onClick={() => setShowForm(true)}>
               + Add task
             </button>
           )}

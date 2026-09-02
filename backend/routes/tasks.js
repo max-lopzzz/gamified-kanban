@@ -164,6 +164,9 @@ router.post("/", (req, res) => {
 
   const dependencyList = Array.isArray(dependencyIds) ? dependencyIds : [];
   const assignees = normalizeAssignees(req.body);
+  const subtaskTitles = Array.isArray(req.body.subtasks)
+    ? req.body.subtasks.map((s) => String(s).trim()).filter(Boolean)
+    : [];
 
   const refError =
     taskRefError({ boardId, dependencyIds: dependencyList, sprintId }) ||
@@ -187,6 +190,9 @@ router.post("/", (req, res) => {
     `INSERT OR IGNORE INTO task_dependencies (task_id, depends_on_task_id)
      VALUES (?, ?)`
   );
+  const insertSubtask = db.prepare(
+    `INSERT INTO subtasks (id, task_id, title, position) VALUES (?, ?, ?, ?)`
+  );
 
   db.transaction(() => {
     insertTask.run(
@@ -203,6 +209,9 @@ router.post("/", (req, res) => {
     for (const depId of dependencyList) {
       if (depId !== id) insertDependency.run(id, depId);
     }
+    subtaskTitles.forEach((t, i) =>
+      insertSubtask.run(`sub_${nanoid(10)}`, id, t, i)
+    );
   })();
 
   res.json(taskWithRelations(id));
@@ -341,6 +350,19 @@ export function taskWithRelations(taskId) {
        FROM task_assignees ta
        WHERE ta.task_id = ?
        ORDER BY ta.assignee_type, name`
+    )
+    .all(taskId);
+  task.dependencies = db
+    .prepare(
+      `SELECT d.depends_on_task_id AS id, t.title
+       FROM task_dependencies d JOIN tasks t ON t.id = d.depends_on_task_id
+       WHERE d.task_id = ?`
+    )
+    .all(taskId);
+  task.subtasks = db
+    .prepare(
+      `SELECT id, task_id, title, done, position FROM subtasks
+       WHERE task_id = ? ORDER BY position ASC, created_at ASC`
     )
     .all(taskId);
   return task;
