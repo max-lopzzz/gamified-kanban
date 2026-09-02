@@ -2,6 +2,7 @@ import { Router } from "express";
 import { nanoid } from "nanoid";
 
 import db from "../db.js";
+import { withDerivedActive } from "../lib/sprint-status.js";
 
 const router = Router();
 
@@ -15,20 +16,13 @@ function isBoardMember(boardId, userId) {
     .get(boardId, userId);
 }
 
-/*
- * A board has at most one active sprint. Clearing siblings has to happen on
- * both POST and PATCH, so it lives in one place.
- */
-function deactivateOtherSprints(boardId, exceptId = null) {
-  if (exceptId) {
-    db.prepare(
-      "UPDATE sprints SET is_active = 0 WHERE board_id = ? AND id != ?"
-    ).run(boardId, exceptId);
-  } else {
-    db.prepare("UPDATE sprints SET is_active = 0 WHERE board_id = ?").run(
-      boardId
-    );
-  }
+function boardSprints(boardId) {
+  return db
+    .prepare(
+      `SELECT * FROM sprints WHERE board_id = ?
+       ORDER BY starts_at ASC, created_at ASC`
+    )
+    .all(boardId);
 }
 
 router.get("/board/:boardId", (req, res) => {
@@ -38,27 +32,11 @@ router.get("/board/:boardId", (req, res) => {
     });
   }
 
-  const sprints = db
-    .prepare(`
-      SELECT *
-      FROM sprints
-      WHERE board_id = ?
-      ORDER BY starts_at ASC, created_at ASC
-    `)
-    .all(req.params.boardId);
-
-  res.json(sprints);
+  res.json(withDerivedActive(boardSprints(req.params.boardId)));
 });
 
 router.post("/", (req, res) => {
-  const {
-    boardId,
-    name,
-    goal = "",
-    startsAt = null,
-    endsAt = null,
-    isActive = false,
-  } = req.body;
+  const { boardId, name, goal = "", startsAt = null, endsAt = null } = req.body;
 
   if (!boardId || !name?.trim()) {
     return res.status(400).json({
@@ -75,33 +53,12 @@ router.post("/", (req, res) => {
   const id = `sprint_${nanoid(10)}`;
 
   db.prepare(`
-    INSERT INTO sprints (
-      id,
-      board_id,
-      name,
-      goal,
-      starts_at,
-      ends_at,
-      is_active
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id,
-    boardId,
-    name.trim(),
-    goal ?? "",
-    startsAt,
-    endsAt,
-    isActive ? 1 : 0
-  );
+    INSERT INTO sprints (id, board_id, name, goal, starts_at, ends_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(id, boardId, name.trim(), goal ?? "", startsAt, endsAt);
 
-  if (isActive) {
-    deactivateOtherSprints(boardId, id);
-  }
-
-  res.json(
-    db.prepare("SELECT * FROM sprints WHERE id = ?").get(id)
-  );
+  const created = db.prepare("SELECT * FROM sprints WHERE id = ?").get(id);
+  res.json(withDerivedActive(boardSprints(boardId)).find((s) => s.id === id) || created);
 });
 
 const SPRINT_PATCH_COLUMNS = {
@@ -134,14 +91,6 @@ router.patch("/:id", (req, res) => {
     }
   }
 
-  if (req.body.isActive !== undefined) {
-    if (req.body.isActive) {
-      deactivateOtherSprints(sprint.board_id);
-    }
-    updates.push("is_active = ?");
-    values.push(req.body.isActive ? 1 : 0);
-  }
-
   if (updates.length > 0) {
     values.push(req.params.id);
     db.prepare(`UPDATE sprints SET ${updates.join(", ")} WHERE id = ?`).run(
@@ -149,7 +98,12 @@ router.patch("/:id", (req, res) => {
     );
   }
 
-  res.json(db.prepare("SELECT * FROM sprints WHERE id = ?").get(req.params.id));
+  const updated = db.prepare("SELECT * FROM sprints WHERE id = ?").get(req.params.id);
+  res.json(
+    withDerivedActive(boardSprints(sprint.board_id)).find(
+      (s) => s.id === req.params.id
+    ) || updated
+  );
 });
 
 router.delete("/:id", (req, res) => {

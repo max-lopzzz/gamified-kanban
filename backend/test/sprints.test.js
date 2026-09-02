@@ -39,30 +39,73 @@ test("PATCH /api/sprints/:id updates fields", async () => {
   assert.equal(res.body.goal, "ship it");
 });
 
-test("PATCH isActive:true deactivates sibling sprints", async () => {
-  const { token, board, s1 } = await setupBoardWithSprint(app);
-  const s2 = (
+function isoDaysFromNow(n) {
+  return new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+}
+
+test("a sprint whose date window contains today is active; others are not", async () => {
+  const { token, board } = await setupBoardWithSprint(app); // s1 has no dates
+
+  const current = (
     await request(app)
       .post("/api/sprints")
       .set(authHeader(token))
-      .send({ boardId: board.id, name: "S2" })
+      .send({
+        boardId: board.id,
+        name: "current",
+        startsAt: isoDaysFromNow(-2),
+        endsAt: isoDaysFromNow(5),
+      })
   ).body;
 
   await request(app)
-    .patch(`/api/sprints/${s1.id}`)
+    .post("/api/sprints")
     .set(authHeader(token))
-    .send({ isActive: true });
-  await request(app)
-    .patch(`/api/sprints/${s2.id}`)
-    .set(authHeader(token))
-    .send({ isActive: true });
+    .send({
+      boardId: board.id,
+      name: "past",
+      startsAt: isoDaysFromNow(-30),
+      endsAt: isoDaysFromNow(-20),
+    });
 
   const list = (
     await request(app).get(`/api/sprints/board/${board.id}`).set(authHeader(token))
   ).body;
   const active = list.filter((s) => s.is_active);
   assert.equal(active.length, 1);
-  assert.equal(active[0].id, s2.id);
+  assert.equal(active[0].id, current.id);
+});
+
+test("when two windows overlap today, the later-starting sprint wins", async () => {
+  const { token, board } = await setupBoardWithSprint(app);
+
+  await request(app)
+    .post("/api/sprints")
+    .set(authHeader(token))
+    .send({
+      boardId: board.id,
+      name: "wide",
+      startsAt: isoDaysFromNow(-10),
+      endsAt: isoDaysFromNow(10),
+    });
+  const newer = (
+    await request(app)
+      .post("/api/sprints")
+      .set(authHeader(token))
+      .send({
+        boardId: board.id,
+        name: "newer",
+        startsAt: isoDaysFromNow(-1),
+        endsAt: isoDaysFromNow(3),
+      })
+  ).body;
+
+  const list = (
+    await request(app).get(`/api/sprints/board/${board.id}`).set(authHeader(token))
+  ).body;
+  const active = list.filter((s) => s.is_active);
+  assert.equal(active.length, 1);
+  assert.equal(active[0].id, newer.id);
 });
 
 test("PATCH /api/sprints/:id 404 for unknown sprint", async () => {
@@ -155,27 +198,14 @@ test("POST /api/sprints persists goal", async () => {
   assert.equal(fetched.goal, "ship it");
 });
 
-test("POST /api/sprints with isActive:true leaves exactly one active sprint", async () => {
-  const { token, board } = await setupBoardWithSprint(app);
-
-  const a = await request(app)
-    .post("/api/sprints")
-    .set(authHeader(token))
-    .send({ boardId: board.id, name: "A", isActive: true });
-  assert.equal(a.status, 200);
-
-  const b = await request(app)
-    .post("/api/sprints")
-    .set(authHeader(token))
-    .send({ boardId: board.id, name: "B", isActive: true });
-  assert.equal(b.status, 200);
+test("a dateless sprint is never auto-active", async () => {
+  const { token, board, s1 } = await setupBoardWithSprint(app);
 
   const list = (
     await request(app).get(`/api/sprints/board/${board.id}`).set(authHeader(token))
   ).body;
-  const active = list.filter((s) => s.is_active);
-  assert.equal(active.length, 1);
-  assert.equal(active[0].id, b.body.id);
+  const s = list.find((x) => x.id === s1.id);
+  assert.equal(s.is_active, 0);
 });
 
 test("GET /api/sprints/board/:boardId returns sprints without error", async () => {
