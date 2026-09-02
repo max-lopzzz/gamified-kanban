@@ -158,18 +158,74 @@ button {
   cursor: pointer;
 }
 
+/* ---------- Form controls ---------- */
 input, textarea, select {
   font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text);
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text);
-  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
-input:focus, textarea:focus, select:focus, button:focus-visible {
+input::placeholder, textarea::placeholder { color: var(--text-faint); }
+
+textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%238b8fa8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  cursor: pointer;
+}
+
+input[type="checkbox"], input[type="radio"] {
+  width: auto;
+  padding: 0;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+
+input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
+
+input:hover:not(:disabled),
+textarea:hover:not(:disabled),
+select:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 22%, transparent);
+}
+
+button:focus-visible {
   outline: 2px solid var(--gold);
-  outline-offset: 1px;
+  outline-offset: 2px;
+}
+
+input:disabled, textarea:disabled, select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+label:not(.dependency-option) {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
 }
 
 ::selection {
@@ -211,8 +267,11 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
 .auth-card form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
+
+.auth-card form input { width: 100%; }
+.auth-card form .btn-primary { margin-top: var(--space-1); }
 
 .auth-error {
   color: var(--priority-urgent);
@@ -609,28 +668,58 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
   margin-top: var(--space-2);
 }
 
-/* ---------- New task form ---------- */
+/* ---------- Task forms (create + inline edit) ---------- */
 .new-task-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px;
+  gap: var(--space-2);
+  padding: var(--space-3);
   border-top: 1px solid var(--border);
+}
+
+.task-card-editing form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.new-task-form input,
+.new-task-form textarea,
+.new-task-form select,
+.task-card-editing input,
+.task-card-editing textarea,
+.task-card-editing select {
+  width: 100%;
+  font-size: 13px;
+  padding: 7px 10px;
+}
+
+.new-task-form select,
+.task-card-editing select {
+  padding-right: 30px;
+  background-position: right 10px center;
+}
+
+.new-task-form textarea,
+.task-card-editing textarea { min-height: 56px; }
+
+.new-task-form label:not(.dependency-option),
+.task-card-editing label:not(.dependency-option) {
+  margin-top: var(--space-1);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
 }
 
 .new-task-row {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
-.new-task-row select, .new-task-row input[type="number"] {
+.new-task-row > select,
+.new-task-row > input {
   flex: 1;
-  font-size: 12px;
-  padding: 6px;
-}
-
-.new-task-form input[type="text"] {
-  font-size: 13px;
+  min-width: 0;
 }
 
 /* ---------- Sidebar / leaderboard ---------- */
@@ -816,11 +905,18 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
 
 .settings-form {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
-  margin-top: var(--space-3);
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  max-width: 420px;
 }
+
+.settings-form input,
+.settings-form select,
+.settings-form textarea { width: 100%; }
+
+.settings-form button { align-self: flex-start; }
 
 .member-role {
   margin-left: auto;
@@ -903,7 +999,13 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  margin: var(--space-2) 0;
+  margin: var(--space-1) 0 0;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
 }
 
 .dependency-option {
@@ -912,7 +1014,10 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
   gap: var(--space-2);
   font-size: 13px;
   color: var(--text-muted);
+  cursor: pointer;
 }
+
+.dependency-list:empty, .dependency-options:empty { display: none; }
 
 /* ---------- Settings responsive collapse ---------- */
 @media (max-width: 720px) {
