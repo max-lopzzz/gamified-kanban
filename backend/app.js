@@ -8,6 +8,7 @@ import userRoutes from "./routes/users.js";
 import teamRoutes from "./routes/teams.js";
 import sprintRoutes from "./routes/sprints.js";
 import subtaskRoutes from "./routes/subtasks.js";
+import integrationRoutes from "./routes/integrations.js";
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use("/api/teams", authMiddleware, integrationReadOnly, teamRoutes);
 app.use("/api/users", authMiddleware, integrationReadOnly, userRoutes);
 app.use("/api/sprints", authMiddleware, integrationReadOnly, sprintRoutes);
 app.use("/api/subtasks", authMiddleware, integrationReadOnly, subtaskRoutes);
+app.use("/api/integrations", authMiddleware, integrationReadOnly, integrationRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ ok: true });

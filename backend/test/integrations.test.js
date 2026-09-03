@@ -59,3 +59,34 @@ test("last_used_at is stamped on use", async () => {
   const row = db.prepare("SELECT last_used_at FROM integration_tokens WHERE token = ?").get(qbit);
   assert.ok(row.last_used_at, "last_used_at should be set");
 });
+
+test("link-code + status + unlink lifecycle", async () => {
+  const { token: jwt, user } = await registerUser(app, { email: "lifecycle@x.com" });
+  const auth = { Authorization: `Bearer ${jwt}` };
+
+  let res = await request(app).get("/api/integrations/discord/status").set(auth);
+  assert.deepEqual(res.body, { linked: false });
+
+  res = await request(app).post("/api/integrations/discord/link-code").set(auth);
+  assert.equal(res.status, 200);
+  assert.match(res.body.code, /^\d{6}$/);
+  assert.ok(Date.parse(res.body.expiresAt) > Date.now());
+
+  const codeRow = db.prepare("SELECT * FROM discord_link_codes WHERE code = ?").get(res.body.code);
+  assert.equal(codeRow.user_id, user.id);
+
+  // simulate a completed redeem
+  db.prepare("INSERT INTO integration_tokens (token, user_id, kind) VALUES (?, ?, 'discord')").run("qbit_" + "c".repeat(32), user.id);
+  res = await request(app).get("/api/integrations/discord/status").set(auth);
+  assert.deepEqual(res.body, { linked: true });
+
+  res = await request(app).delete("/api/integrations/discord/link").set(auth);
+  assert.deepEqual(res.body, { ok: true });
+  res = await request(app).get("/api/integrations/discord/status").set(auth);
+  assert.deepEqual(res.body, { linked: false });
+});
+
+test("link-code requires auth", async () => {
+  const res = await request(app).post("/api/integrations/discord/link-code");
+  assert.equal(res.status, 401);
+});
