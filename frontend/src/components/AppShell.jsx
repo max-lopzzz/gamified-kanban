@@ -35,10 +35,10 @@ export default function AppShell({ onSignOut }) {
   }, [loadUser, loadBoards]);
 
   useEffect(() => {
-    if (!boardId && boards.length > 0) {
+    if (!boardId && pathname === "/" && boards.length > 0) {
       navigate(`/board/${boards[0].id}`, { replace: true });
     }
-  }, [boardId, boards, navigate]);
+  }, [boardId, boards, navigate, pathname]);
 
   function handleSignOut() {
     clearToken();
