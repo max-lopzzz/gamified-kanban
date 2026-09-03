@@ -37,5 +37,6 @@ export function createApi({ baseUrl, botSecret }) {
         headers: { "x-bot-secret": botSecret },
         body: { code, discordUserId },
       }),
+    unlink: (token) => call("/api/integrations/discord/link", { method: "DELETE", token }),
   };
 }
