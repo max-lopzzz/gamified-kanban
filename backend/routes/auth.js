@@ -58,9 +58,23 @@ router.post("/login", (req, res) => {
 export function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) return res.status(401).json({ error: "Missing token" });
+  const raw = header.slice(7);
+
+  if (raw.startsWith("qbit_")) {
+    const row = db
+      .prepare("SELECT user_id FROM integration_tokens WHERE token = ?")
+      .get(raw);
+    if (!row) return res.status(401).json({ error: "Invalid or expired token" });
+    db.prepare("UPDATE integration_tokens SET last_used_at = datetime('now') WHERE token = ?").run(raw);
+    req.userId = row.user_id;
+    req.authKind = "integration";
+    return next();
+  }
+
   try {
-    const payload = jwt.verify(header.slice(7), JWT_SECRET);
+    const payload = jwt.verify(raw, JWT_SECRET);
     req.userId = payload.userId;
+    req.authKind = "user";
     next();
   } catch {
     res.status(401).json({ error: "Invalid or expired token" });
