@@ -35,7 +35,7 @@ app.use("/api/teams", authMiddleware, integrationReadOnly, teamRoutes);
 app.use("/api/users", authMiddleware, integrationReadOnly, userRoutes);
 app.use("/api/sprints", authMiddleware, integrationReadOnly, sprintRoutes);
 app.use("/api/subtasks", authMiddleware, integrationReadOnly, subtaskRoutes);
-app.use("/api/integrations", authMiddleware, integrationReadOnly, integrationRoutes);
+app.use("/api/integrations", authMiddleware, integrationRoutes);
 app.use("/api/bot", botRouter); // bot-only, gated by X-Bot-Secret inside the handler
 
 app.get("/api/health", (req, res) => {

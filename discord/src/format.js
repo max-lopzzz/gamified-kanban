@@ -57,7 +57,7 @@ export function formatMine(boards) {
       })
       .filter(Boolean)
       .join("\n");
-    fields.push({ name: board.name, value: groups.slice(0, 1024) });
+    fields.push({ name: board.name, value: (groups || "—").slice(0, 1024) });
   }
   return { title: "Your tasks", fields: fields.length ? fields : [{ name: "Your tasks", value: "Nothing assigned to you right now." }] };
 }

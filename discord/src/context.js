@@ -1,7 +1,7 @@
 import { MessageFlags } from "discord.js";
 
 export function buildContext(interaction, { store, api }) {
-  const toPayload = (p) => (typeof p === "string" ? { content: p } : { embeds: [p] });
+  const toPayload = (p) => (typeof p === "string" ? { content: p } : p);
   return {
     discordUserId: interaction.user.id,
     channelId: interaction.channelId,

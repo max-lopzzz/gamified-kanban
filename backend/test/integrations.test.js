@@ -135,3 +135,30 @@ test("redeem: expired code is 400", async () => {
   const res = await request(app).post("/api/bot/discord/redeem").set(BOT).send({ code: stale, discordUserId: "1" });
   assert.equal(res.status, 400);
 });
+
+test("a redeemed token stops working after the user unlinks", async () => {
+  const { token: jwt } = await registerUser(app, { email: "revoke@x.com" });
+  const jwtAuth = { Authorization: `Bearer ${jwt}` };
+  const code = (await request(app).post("/api/integrations/discord/link-code").set(jwtAuth)).body.code;
+  const qbit = (await request(app).post("/api/bot/discord/redeem").set(BOT).send({ code, discordUserId: "z" })).body.token;
+
+  const before = await request(app).get("/api/boards").set({ Authorization: `Bearer ${qbit}` });
+  assert.equal(before.status, 200);
+
+  await request(app).delete("/api/integrations/discord/link").set(jwtAuth);
+
+  const after = await request(app).get("/api/boards").set({ Authorization: `Bearer ${qbit}` });
+  assert.equal(after.status, 401);
+});
+
+test("a qbit_ token cannot read a board the user is not a member of", async () => {
+  const { token: jwtA } = await registerUser(app, { email: "tenantA@x.com" });
+  const { token: jwtB } = await registerUser(app, { email: "tenantB@x.com" });
+  const boardB = (await request(app).post("/api/boards").set({ Authorization: `Bearer ${jwtB}` }).send({ name: "B private" })).body;
+
+  const code = (await request(app).post("/api/integrations/discord/link-code").set({ Authorization: `Bearer ${jwtA}` })).body.code;
+  const qbitA = (await request(app).post("/api/bot/discord/redeem").set(BOT).send({ code, discordUserId: "a" })).body.token;
+
+  const res = await request(app).get(`/api/boards/${boardB.id}`).set({ Authorization: `Bearer ${qbitA}` });
+  assert.ok(res.status === 403 || res.status === 404, `expected 403/404, got ${res.status}`);
+});

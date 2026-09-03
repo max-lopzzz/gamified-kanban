@@ -1,6 +1,7 @@
 import { SlashCommandBuilder } from "discord.js";
 import { formatMine } from "../format.js";
 import { NotLinkedError, ForbiddenError, ApiUnreachableError } from "../api.js";
+import { boardAutocomplete } from "./_shared.js";
 
 const STATUS_CHOICES = ["backlog", "todo", "in-progress", "done"].map((s) => ({ name: s, value: s }));
 
@@ -31,16 +32,20 @@ export async function execute(ctx) {
   if (only) boards = boards.filter((b) => b.id === only || b.name.toLowerCase() === only.toLowerCase());
 
   const status = ctx.opt("status");
-  const pairs = [];
-  for (const b of boards) {
-    let full;
-    try { full = await ctx.api.getBoard(link.integrationToken, b.id); }
-    catch (err) { if (err instanceof ForbiddenError) continue; throw err; }
-    let tasks = full.tasks.filter((t) => isMine(t, link.appUserId, full));
-    tasks = status ? tasks.filter((t) => t.status === status) : tasks.filter((t) => t.status !== "done");
-    if (tasks.length) pairs.push({ board: full, tasks });
-  }
+  const results = await Promise.all(
+    boards.map(async (b) => {
+      let full;
+      try { full = await ctx.api.getBoard(link.integrationToken, b.id); }
+      catch (err) { if (err instanceof ForbiddenError) return null; throw err; }
+      let tasks = full.tasks.filter((t) => isMine(t, link.appUserId, full));
+      tasks = status ? tasks.filter((t) => t.status === status) : tasks.filter((t) => t.status !== "done");
+      return tasks.length ? { board: full, tasks } : null;
+    })
+  );
+  const pairs = results.filter(Boolean);
   return ctx.reply({ embeds: [formatMine(pairs)] });
 }
 
-export default { name: "mine", data, execute };
+export async function autocomplete(ctx) { return boardAutocomplete(ctx); }
+
+export default { name: "mine", data, execute, autocomplete };

@@ -28,11 +28,12 @@ router.post("/discord/link-code", (req, res) => {
       insert.run(code, req.userId, ttl);
       break;
     } catch (err) {
+      if (err.code !== "SQLITE_CONSTRAINT_PRIMARYKEY") throw err; // only retry on code collision
       if (attempt === 4) throw err; // give up after 5 collisions
     }
   }
   const row = db.prepare("SELECT expires_at FROM discord_link_codes WHERE code = ?").get(code);
-  res.json({ code, expiresAt: new Date(row.expires_at + "Z").toISOString() });
+  res.json({ code, expiresAt: new Date(row.expires_at.replace(" ", "T") + "Z").toISOString() });
 });
 
 router.get("/discord/status", (req, res) => {

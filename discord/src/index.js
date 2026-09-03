@@ -13,12 +13,14 @@ const {
 } = process.env;
 
 if (!DISCORD_TOKEN) { console.error("DISCORD_TOKEN is required"); process.exit(1); }
+if (!API_BASE) { console.error("API_BASE is required"); process.exit(1); }
+if (!BOT_REDEEM_SECRET) { console.error("BOT_REDEEM_SECRET is required"); process.exit(1); }
 
 const store = createStore(BOT_DB_PATH);
 const api = createApi({ baseUrl: API_BASE, botSecret: BOT_REDEEM_SECRET });
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-client.once("ready", (c) => console.log(`[bot] logged in as ${c.user.tag}`));
+client.once("clientReady", (c) => console.log(`[bot] logged in as ${c.user.tag}`));
 
 client.on("interactionCreate", async (interaction) => {
   try {
@@ -49,7 +51,7 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 for (const sig of ["SIGTERM", "SIGINT"]) {
-  process.on(sig, () => { client.destroy(); store.close(); process.exit(0); });
+  process.on(sig, async () => { await client.destroy(); store.close(); process.exit(0); });
 }
 
-client.login(DISCORD_TOKEN);
+client.login(DISCORD_TOKEN).catch((e) => { console.error("[bot] login failed:", e); process.exit(1); });
