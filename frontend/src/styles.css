@@ -869,6 +869,21 @@ label:not(.dependency-option) {
   font-size: 13px;
 }
 
+.discord-link-cmd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 16px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.settings-error {
+  color: var(--danger, #c0392b);
+  font-size: 13px;
+  margin: var(--space-2) 0 0;
+}
+
 .settings-layout {
   display: grid;
   grid-template-columns: 180px 1fr;

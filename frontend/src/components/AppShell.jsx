@@ -111,6 +111,10 @@ export default function AppShell({ onSignOut }) {
             </Link>
           )}
 
+          <Link className="btn-ghost" to="/account/settings">
+            Account
+          </Link>
+
           <button
             id="theme-toggle"
             className="btn-ghost"

@@ -61,6 +61,10 @@ export const api = {
 
   me: () => request("/users/me"),
 
+  discordStatus: () => request("/integrations/discord/status"),
+  discordLinkCode: () => request("/integrations/discord/link-code", { method: "POST" }),
+  discordUnlink: () => request("/integrations/discord/link", { method: "DELETE" }),
+
   leaderboard: (boardId) =>
     request(
       "/users/leaderboard" +
