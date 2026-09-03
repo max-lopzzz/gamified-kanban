@@ -90,3 +90,48 @@ test("link-code requires auth", async () => {
   const res = await request(app).post("/api/integrations/discord/link-code");
   assert.equal(res.status, 401);
 });
+
+const BOT = { "X-Bot-Secret": "test-bot-secret" };
+
+test("redeem: happy path issues a working token", async () => {
+  const { token: jwt, user } = await registerUser(app, { email: "redeem@x.com" });
+  const board = (
+    await request(app).post("/api/boards").set({ Authorization: `Bearer ${jwt}` }).send({ name: "RedeemB" })
+  ).body;
+
+  const code = (
+    await request(app).post("/api/integrations/discord/link-code").set({ Authorization: `Bearer ${jwt}` })
+  ).body.code;
+
+  const res = await request(app).post("/api/bot/discord/redeem").set(BOT).send({ code, discordUserId: "123" });
+  assert.equal(res.status, 200);
+  assert.match(res.body.token, /^qbit_.{32}$/);
+  assert.equal(res.body.appUserId, user.id);
+  assert.equal(res.body.displayName, "redeem");
+
+  // token works
+  const boardRes = await request(app).get(`/api/boards/${board.id}`).set({ Authorization: `Bearer ${res.body.token}` });
+  assert.equal(boardRes.status, 200);
+
+  // code is single-use
+  const again = await request(app).post("/api/bot/discord/redeem").set(BOT).send({ code, discordUserId: "123" });
+  assert.equal(again.status, 400);
+});
+
+test("redeem: wrong bot secret is 401", async () => {
+  const res = await request(app)
+    .post("/api/bot/discord/redeem")
+    .set({ "X-Bot-Secret": "nope" })
+    .send({ code: "000000", discordUserId: "1" });
+  assert.equal(res.status, 401);
+});
+
+test("redeem: expired code is 400", async () => {
+  const { token: jwt, user } = await registerUser(app, { email: "expired@x.com" });
+  await request(app).post("/api/integrations/discord/link-code").set({ Authorization: `Bearer ${jwt}` });
+  // force-expire every code for this user
+  db.prepare("UPDATE discord_link_codes SET expires_at = datetime('now', '-1 minute') WHERE user_id = ?").run(user.id);
+  const stale = db.prepare("SELECT code FROM discord_link_codes WHERE user_id = ?").get(user.id).code;
+  const res = await request(app).post("/api/bot/discord/redeem").set(BOT).send({ code: stale, discordUserId: "1" });
+  assert.equal(res.status, 400);
+});

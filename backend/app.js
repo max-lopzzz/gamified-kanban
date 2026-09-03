@@ -8,7 +8,7 @@ import userRoutes from "./routes/users.js";
 import teamRoutes from "./routes/teams.js";
 import sprintRoutes from "./routes/sprints.js";
 import subtaskRoutes from "./routes/subtasks.js";
-import integrationRoutes from "./routes/integrations.js";
+import integrationRoutes, { botRouter } from "./routes/integrations.js";
 
 const app = express();
 
@@ -36,6 +36,7 @@ app.use("/api/users", authMiddleware, integrationReadOnly, userRoutes);
 app.use("/api/sprints", authMiddleware, integrationReadOnly, sprintRoutes);
 app.use("/api/subtasks", authMiddleware, integrationReadOnly, subtaskRoutes);
 app.use("/api/integrations", authMiddleware, integrationReadOnly, integrationRoutes);
+app.use("/api/bot", botRouter); // bot-only, gated by X-Bot-Secret inside the handler
 
 app.get("/api/health", (req, res) => {
   res.json({ ok: true });
