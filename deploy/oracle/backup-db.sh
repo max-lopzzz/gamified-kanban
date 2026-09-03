@@ -15,6 +15,14 @@ stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 sqlite3 "$DB" ".backup '$DEST/kanban-$stamp.sqlite'"
 gzip -f "$DEST/kanban-$stamp.sqlite"
 
+# Bot state DB (best-effort — absent until the bot is deployed).
+BOT_DB="${BOT_DB_PATH:-/mnt/data/questboard-bot.sqlite}"
+if [ -f "$BOT_DB" ]; then
+  sqlite3 "$BOT_DB" ".backup '$DEST/questboard-bot-$stamp.sqlite'"
+  gzip -f "$DEST/questboard-bot-$stamp.sqlite"
+fi
+
 # Prune old backups, keep the newest $KEEP.
 ls -1t "$DEST"/kanban-*.sqlite.gz 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm --
+ls -1t "$DEST"/questboard-bot-*.sqlite.gz 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm --
 echo "backup ok: $DEST/kanban-$stamp.sqlite.gz"

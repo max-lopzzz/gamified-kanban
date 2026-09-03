@@ -177,7 +177,10 @@ redeploys and reboots.
 ```bash
 cd /opt/gamified-kanban && sudo -u kanban git pull
 cd backend && sudo -u kanban npm ci
-sudo systemctl restart gamified-kanban-api
+cd ../discord && sudo -u kanban npm ci        # if the bot is installed
+sudo systemctl restart gamified-kanban-api questboard-bot
+# only if slash-command definitions changed:
+cd /opt/gamified-kanban/discord && sudo -u kanban env $(grep -v '^#' /etc/gamified-kanban/bot.env | xargs) npm run register
 ```
 
 ## 11. Backups
@@ -191,6 +194,44 @@ sudo crontab -e     # add:  17 3 * * *  /usr/local/bin/kanban-backup
 Backups land in `/mnt/data/backups/` (14 kept). Restore = stop the service,
 `gunzip` a backup over `DB_PATH`, start the service. For off-box copies, add an
 `rclone`/`scp` line to the cron.
+
+---
+
+## Discord bot (optional)
+
+### One-time: create the Discord application
+
+1. <https://discord.com/developers/applications> → **New Application**, name it "Questboard".
+   Copy the **Application ID** → `DISCORD_CLIENT_ID`.
+2. **Bot** tab → **Add Bot** → **Reset Token** → copy → `DISCORD_TOKEN`.
+   This is a secret: it goes only in `/etc/gamified-kanban/bot.env`.
+3. Leave **all** Privileged Gateway Intents **off** (Message Content, Presence, Server Members).
+4. **OAuth2 → URL Generator** → scopes `bot` + `applications.commands` →
+   bot permissions: **Send Messages**, **Embed Links**, **Use Slash Commands**.
+   Open the generated URL, pick your server, authorize.
+5. Generate the shared redeem secret and put the SAME value in both env files:
+   `openssl rand -hex 32` → `BOT_REDEEM_SECRET` in `/etc/gamified-kanban/api.env`
+   and `/etc/gamified-kanban/bot.env`. Restart the API after editing its env file.
+
+### Install and run the bot
+
+```bash
+sudo cp /opt/gamified-kanban/deploy/oracle/bot.env.example /etc/gamified-kanban/bot.env
+sudo nano /etc/gamified-kanban/bot.env      # fill in the values above
+sudo chown root:kanban /etc/gamified-kanban/bot.env && sudo chmod 640 /etc/gamified-kanban/bot.env
+
+cd /opt/gamified-kanban/discord && sudo -u kanban npm ci
+# register slash commands (guild-scoped first for instant availability):
+sudo -u kanban env $(grep -v '^#' /etc/gamified-kanban/bot.env | xargs) npm run register
+
+sudo cp /opt/gamified-kanban/deploy/oracle/questboard-bot.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now questboard-bot
+journalctl -u questboard-bot -n 30 --no-pager
+```
+
+Once verified, drop `DISCORD_DEV_GUILD_ID` from the env file and re-run
+`npm run register` to publish the commands globally.
 
 ---
 
