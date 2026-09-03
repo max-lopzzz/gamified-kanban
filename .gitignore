@@ -10,6 +10,9 @@ backend/gamified_kanban.sqlite-wal
 # Local Claude Code settings (keep launch.json tracked for the preview tooling)
 .claude/settings.local.json
 
+# Superpowers SDD scratch workspace (ledger, briefs, review packages)
+.superpowers/
+
 # local env
 .env
 .env.*

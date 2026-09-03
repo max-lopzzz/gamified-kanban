@@ -1,0 +1,41 @@
+# systemd unit for the Discord bot.
+# Install: sudo cp deploy/oracle/questboard-bot.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now questboard-bot
+#
+# Assumes:
+#   - repo cloned at /opt/gamified-kanban  (bot at /opt/gamified-kanban/discord)
+#   - Node installed system-wide at /usr/bin/node
+#   - the `kanban` user
+#   - env file at /etc/gamified-kanban/bot.env
+#   - the API reachable at http://127.0.0.1:4000
+#   - bot state DB on the persistent volume at /mnt/data
+
+[Unit]
+Description=Questboard Discord Bot
+After=network-online.target gamified-kanban-api.service
+Wants=network-online.target
+RequiresMountsFor=/mnt/data
+
+[Service]
+Type=simple
+User=kanban
+Group=kanban
+WorkingDirectory=/opt/gamified-kanban/discord
+EnvironmentFile=/etc/gamified-kanban/bot.env
+ExecStart=/usr/bin/node src/index.js
+Restart=on-failure
+RestartSec=5
+
+# --- hardening ---
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/mnt/data
+
+[Install]
+WantedBy=multi-user.target
