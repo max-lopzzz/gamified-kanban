@@ -49,16 +49,15 @@ export function formatTasks(board, { status, assignee, sprintId } = {}) {
 export function formatMine(boards) {
   const fields = [];
   for (const { board, tasks } of boards) {
-    const active = tasks.filter((t) => t.status !== "done");
-    if (!active.length) continue;
-    const byStatus = STATUS_ORDER.filter((s) => s !== "done")
+    if (!tasks.length) continue;
+    const groups = ["backlog", "todo", "in-progress", "done"]
       .map((s) => {
-        const rows = active.filter((t) => t.status === s);
-        return rows.length ? `__${STATUS_LABEL[s]}__\n${rows.map(line).join("\n")}` : null;
+        const rows = tasks.filter((t) => t.status === s);
+        return rows.length ? `__${STATUS_LABEL[s]}__\n${rows.map((t) => `• ${t.title} — ${t.assignees?.map((a) => a.name).join(", ") || "unassigned"} · ${t.story_points}pt · ${t.priority}`).join("\n")}` : null;
       })
       .filter(Boolean)
       .join("\n");
-    fields.push({ name: board.name, value: clampLines(byStatus.split("\n")).value });
+    fields.push({ name: board.name, value: groups.slice(0, 1024) });
   }
   return { title: "Your tasks", fields: fields.length ? fields : [{ name: "Your tasks", value: "Nothing assigned to you right now." }] };
 }
