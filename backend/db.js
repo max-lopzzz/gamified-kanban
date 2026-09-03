@@ -153,6 +153,22 @@ CREATE TABLE IF NOT EXISTS user_achievements (
   unlocked_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (user_id, achievement_id)
 );
+
+CREATE TABLE IF NOT EXISTS integration_tokens (
+  token        TEXT PRIMARY KEY,
+  user_id      TEXT NOT NULL,
+  kind         TEXT NOT NULL,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  last_used_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS discord_link_codes (
+  code       TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 `);
 
 /*
